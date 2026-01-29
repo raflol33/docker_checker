@@ -48,26 +48,7 @@
             </details>
         </div>
 
-        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
-            <h2 class="text-lg font-bold mb-4">Управление Compose</h2>
-            <form hx-post="/compose/submit" hx-target="#compose-result" class="space-y-3">
-                <p class="text-xs text-gray-400">Запустить compose на хосте:</p>
-                <select name="host_name" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
-                    {% for host in hosts %}
-                    <option value="{{host.name}}">{{host.name}}</option>
-                    {% endfor %}
-                </select>
-                <input type="text" name="path" placeholder="/путь/к/проекту"
-                    class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
-                <div class="flex gap-2">
-                    <button hx-post="/compose/action" hx-include="closest form" hx-vals='{"action": "up"}'
-                        class="flex-1 bg-blue-700 hover:bg-blue-600 p-2 rounded text-xs">Запустить (Up)</button>
-                    <button hx-post="/compose/action" hx-include="closest form" hx-vals='{"action": "down"}'
-                        class="flex-1 bg-red-700 hover:bg-red-600 p-2 rounded text-xs">Остановить (Down)</button>
-                </div>
-            </form>
-            <div id="compose-result" class="mt-2 text-xs text-gray-300 font-mono break-all"></div>
-        </div>
+
     </div>
 
     <!-- Main Content / Containers -->
@@ -127,7 +108,7 @@
                             <td class="px-4 py-3 text-gray-400 text-xs font-mono whitespace-nowrap">
                                 {{ c.created }}
                             </td>
-                            <td class="px-4 py-3 text-gray-400 text-xs font-mono max-w-[200px] truncate"
+                            <td class="px-4 py-3 text-gray-400 text-xs font-mono whitespace-normal break-all"
                                 title="{{ c.ports }}">
                                 {{ c.ports }}
                             </td>
