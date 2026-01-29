@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Sidebar / Hosts -->
+    <div class="lg:col-span-1 space-y-6">
+        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <span>🖥️</span> Управляемые Хосты
+            </h2>
+            <ul class="space-y-2 mb-4">
+                {% for host in hosts %}
+                <li class="flex justify-between items-center bg-gray-700/50 p-2 rounded text-sm">
+                    <span class="font-mono">{{ host.name }}</span>
+                    <div class="flex items-center gap-2">
+                        <button
+                            class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-2 py-1 rounded border border-purple-700 transition"
+                            hx-get="/images/{{ host.name }}" hx-target="body" hx-swap="beforeend">
+                            Образы
+                        </button>
+                        <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{ host.type
+                            }}</span>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <details class="text-sm">
+                <summary class="cursor-pointer text-blue-400 hover:text-blue-300">Добавить Новый Хост</summary>
+                <form action="/hosts/add" method="post" class="mt-4 space-y-3 p-2 bg-gray-700/30 rounded">
+                    <input type="text" name="name" placeholder="Имя Хоста"
+                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
+                    <select name="type" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                        <option value="ssh">SSH</option>
+                        <option value="local">Локальный Сокет</option>
+                    </select>
+                    <input type="text" name="ip" placeholder="IP Адрес (SSH)"
+                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                    <input type="number" name="port" placeholder="Порт (22)"
+                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                    <input type="text" name="ssh_user" placeholder="Пользователь SSH"
+                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                    <input type="text" name="ssh_password" placeholder="Пароль SSH (Необязательно)"
+                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                    <button class="w-full bg-green-700 hover:bg-green-600 text-white p-2 rounded text-xs">Добавить
+                        Хост</button>
+                </form>
+            </details>
+        </div>
+
+        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+            <h2 class="text-lg font-bold mb-4">Управление Compose</h2>
+            <form hx-post="/compose/submit" hx-target="#compose-result" class="space-y-3">
+                <p class="text-xs text-gray-400">Запустить compose на хосте:</p>
+                <select name="host_name" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
+                    {% for host in hosts %}
+                    <option value="{{host.name}}">{{host.name}}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="path" placeholder="/путь/к/проекту"
+                    class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
+                <div class="flex gap-2">
+                    <button hx-post="/compose/action" hx-include="closest form" hx-vals='{"action": "up"}'
+                        class="flex-1 bg-blue-700 hover:bg-blue-600 p-2 rounded text-xs">Запустить (Up)</button>
+                    <button hx-post="/compose/action" hx-include="closest form" hx-vals='{"action": "down"}'
+                        class="flex-1 bg-red-700 hover:bg-red-600 p-2 rounded text-xs">Остановить (Down)</button>
+                </div>
+            </form>
+            <div id="compose-result" class="mt-2 text-xs text-gray-300 font-mono break-all"></div>
+        </div>
+    </div>
+
+    <!-- Main Content / Containers -->
+    <div class="lg:col-span-3 space-y-6">
+        {% if errors %}
+        <div class="bg-red-900/50 border border-red-800 p-4 rounded text-sm text-red-200">
+            <p class="font-bold">Обнаружены ошибки:</p>
+            <ul class="list-disc pl-5">
+                {% for err in errors %}
+                <li>{{ err }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+            <div class="p-4 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold">📦 Контейнеры</h2>
+                <button onclick="location.reload()"
+                    class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm">Обновить</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-gray-400 uppercase bg-gray-700/50">
+                        <tr>
+                            <th class="px-4 py-3">Статус</th>
+                            <th class="px-4 py-3">Имя</th>
+                            <th class="px-4 py-3">Образ</th>
+                            <th class="px-4 py-3">Создан</th>
+                            <th class="px-4 py-3">Порты</th>
+                            <th class="px-4 py-3">Хост</th>
+                            <th class="px-4 py-3 text-right">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700">
+                        {% for c in containers %}
+                        <tr class="hover:bg-gray-700/30 transition">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="flex items-center gap-2">
+                                    {% if 'running' in c.state|lower %}
+                                    <span
+                                        class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                                    {% else %}
+                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                    {% endif %}
+                                    <div class="flex flex-col">
+                                        <span class="text-xs text-white uppercase font-bold">{{ c.state }}</span>
+                                        <span class="text-[10px] text-gray-400 font-mono">{{ c.status }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 font-medium text-white">{{ c.name }}</td>
+                            <td class="px-4 py-3 text-gray-300 text-xs font-mono whitespace-normal break-all"
+                                title="{{ c.image }}">
+                                {{ c.image }}
+                            </td>
+                            <td class="px-4 py-3 text-gray-400 text-xs font-mono whitespace-nowrap">
+                                {{ c.created }}
+                            </td>
+                            <td class="px-4 py-3 text-gray-400 text-xs font-mono max-w-[200px] truncate"
+                                title="{{ c.ports }}">
+                                {{ c.ports }}
+                            </td>
+                            <td class="px-4 py-3 text-blue-400 font-mono text-xs">{{ c.host }}</td>
+                            <td class="px-4 py-3 text-right space-x-2">
+                                <button hx-get="/containers/{{c.host}}/{{c.id}}/logs" hx-target="#modal-content"
+                                    hx-trigger="click" onclick="document.getElementById('log-modal').showModal()"
+                                    class="text-gray-400 hover:text-white transition">
+                                    📜 Логи
+                                </button>
+                                <button hx-post="/containers/{{c.host}}/{{c.id}}/restart" hx-swap="none"
+                                    class="text-yellow-500 hover:text-yellow-400 transition" title="Перезапустить">
+                                    🔄
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                Контейнеры не найдены. Добавьте хост или проверьте соединение.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Logs -->
+<dialog id="log-modal" class="bg-transparent p-0 w-full max-w-4xl backdrop:bg-black/80">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl flex flex-col max-h-[90vh]">
+        <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800 rounded-t-lg">
+            <h3 class="font-bold">Логи Контейнера</h3>
+            <button onclick="document.getElementById('log-modal').close()"
+                class="text-gray-400 hover:text-white">✕</button>
+        </div>
+        <div id="modal-content" class="p-4 overflow-auto flex-1 font-mono text-xs text-gray-300 whitespace-pre-wrap">
+            Загрузка...
+        </div>
+    </div>
+</dialog>
+{% endblock %}

@@ -1,0 +1,68 @@
+<div class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" id="images-modal">
+    <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col border border-gray-700">
+        <div class="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-900 rounded-t-lg">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Образы на {{ host_name }}
+            </h3>
+            <button onclick="document.getElementById('images-modal').remove()"
+                class="text-gray-400 hover:text-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-0 overflow-auto flex-1">
+            {% if error %}
+            <div class="p-4 bg-red-900/50 text-red-200 border-l-4 border-red-500 m-4">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-700/50 text-gray-400 text-xs uppercase sticky top-0 backdrop-blur-sm">
+                    <tr>
+                        <th class="px-6 py-3">Тег</th>
+                        <th class="px-6 py-3">ID</th>
+                        <th class="px-6 py-3">Создан</th>
+                        <th class="px-6 py-3">Размер</th>
+                        <th class="px-6 py-3 text-right">Действия</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-700 text-sm">
+                    {% for img in images %}
+                    <tr class="hover:bg-gray-700/30 transition">
+                        <td class="px-6 py-3 font-mono text-white max-w-xs truncate" title="{{ img.tag }}">{{ img.tag }}
+                        </td>
+                        <td class="px-6 py-3 font-mono text-gray-400 text-xs">{{ img.id[:12] }}</td>
+                        <td class="px-6 py-3 text-gray-300">{{ img.created }}</td>
+                        <td class="px-6 py-3 text-gray-300">{{ img.size }}</td>
+                        <td class="px-6 py-3 text-right">
+                            <button hx-delete="/images/{{ host_name }}/{{ img.id }}"
+                                hx-confirm="Вы уверены, что хотите удалить образ {{ img.tag }}?" hx-target="closest tr"
+                                hx-swap="outerHTML" class="text-red-500 hover:text-red-400 transition"
+                                title="Удалить Образ">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">Образы не найдены</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+docker
+paramiko
+sqlalchemy
+aiosqlite
+python-jose[cryptography]
+bcrypt
+
+
+python-multipart
+jinja2
+httpx

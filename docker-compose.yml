@@ -1,0 +1,21 @@
+services:
+  docker-manager:
+    build: .
+    container_name: docker-manager
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data # Persist SQLite DB
+      - ./app:/app/app # Hot reload for code and templates
+    environment:
+      - ADMIN_USER=admin
+      - ADMIN_PASS=securepassword123
+      - SECRET_KEY=changesomethingsecure
+      - DATABASE_URL=sqlite+aiosqlite:///./data/data.db
+    # Ensure data dir exists or handle in app logic.
+    # App logic uses ./data.db relative by default in database.py but we can override via env.
+
+volumes:
+  data:
