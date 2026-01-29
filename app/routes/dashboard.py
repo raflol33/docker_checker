@@ -18,22 +18,21 @@ async def dashboard(request: Request, user=Depends(get_current_user), db: AsyncS
     result = await db.execute(select(DockerHost))
     hosts = result.scalars().all()
     
-    # In a real async world, we might want to fetch containers for all hosts in parallel
-    # For now, let's just pass hosts and let HTMX load containers lazy or load here.
-    # To make "Unified table", we probably want to fetch them all here or render a skeleton.
-    # Let's fetch them all here for simplicity of the first render.
+    # Validations...
+    # Return empty list initially to allow user to select host.
+    # The template should handle empty state gracefully.
     
     all_containers = []
     errors = []
     
-    loop = asyncio.get_running_loop()
+    # loop = asyncio.get_running_loop()
     
-    for host in hosts:
-        try:
-            containers = await DockerService.list_containers(host, loop)
-            all_containers.extend(containers)
-        except Exception as e:
-            errors.append(f"Ошибка подключения к {host.name}: {str(e)}")
+    # for host in hosts:
+    #     try:
+    #         containers = await DockerService.list_containers(host, loop)
+    #         all_containers.extend(containers)
+    #     except Exception as e:
+    #         errors.append(f"Ошибка подключения к {host.name}: {str(e)}")
             
     return templates.TemplateResponse("index.html", {
         "request": request, 
@@ -41,6 +40,41 @@ async def dashboard(request: Request, user=Depends(get_current_user), db: AsyncS
         "hosts": hosts, 
         "containers": all_containers,
         "errors": errors
+    })
+
+@router.get("/containers/list", response_class=HTMLResponse)
+async def list_containers_filtered(
+    request: Request,
+    host_name: Optional[str] = None,
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    loop = asyncio.get_running_loop()
+    containers = []
+    
+    if host_name:
+        # Fetch for single host
+        result = await db.execute(select(DockerHost).where(DockerHost.name == host_name))
+        host = result.scalar_one_or_none()
+        if host:
+            try:
+                containers = await DockerService.list_containers(host, loop)
+            except Exception:
+                pass # Return empty or handle error
+    else:
+        # Fetch all
+        result = await db.execute(select(DockerHost))
+        hosts = result.scalars().all()
+        for host in hosts:
+            try:
+                c_list = await DockerService.list_containers(host, loop)
+                containers.extend(c_list)
+            except Exception:
+                pass
+                
+    return templates.TemplateResponse("partials/container_rows.html", {
+        "request": request,
+        "containers": containers
     })
 
 @router.post("/hosts/add")
@@ -93,6 +127,44 @@ async def restart_container(
     try:
         await DockerService.restart_container(host, container_id, loop)
         return {"status": "restarted", "id": container_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/containers/{host_name}/{container_id}/stop")
+async def stop_container(
+    host_name: str, 
+    container_id: str, 
+    user=Depends(get_current_user), 
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(DockerHost).where(DockerHost.name == host_name))
+    host = result.scalar_one_or_none()
+    if not host:
+        raise HTTPException(status_code=404, detail="Хост не найден")
+        
+    loop = asyncio.get_running_loop()
+    try:
+        await DockerService.stop_container(host, container_id, loop)
+        return {"status": "stopped", "id": container_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/containers/{host_name}/{container_id}/start")
+async def start_container(
+    host_name: str, 
+    container_id: str, 
+    user=Depends(get_current_user), 
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(DockerHost).where(DockerHost.name == host_name))
+    host = result.scalar_one_or_none()
+    if not host:
+        raise HTTPException(status_code=404, detail="Хост не найден")
+        
+    loop = asyncio.get_running_loop()
+    try:
+        await DockerService.start_container(host, container_id, loop)
+        return {"status": "started", "id": container_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -199,5 +271,51 @@ async def compose_action(
         return {"status": "success", "output": output}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from fastapi import WebSocket, WebSocketDisconnect
+
+@router.websocket("/ws/logs/{host_name}/{container_id}")
+async def websocket_logs(
+    websocket: WebSocket,
+    host_name: str,
+    container_id: str,
+    tail: str = "100", # default tail for ws
+    db: AsyncSession = Depends(get_db) 
+):
+    await websocket.accept()
+    
+    # We need to get host inside the socket handler (or pass params)
+    # Depends(get_db) works in websocket? Yes.
+    
+    try:
+        result = await db.execute(select(DockerHost).where(DockerHost.name == host_name))
+        host = result.scalar_one_or_none()
+        
+        if not host:
+            await websocket.send_text("Error: Host not found")
+            await websocket.close()
+            return
+
+        loop = asyncio.get_running_loop()
+        
+        # Stream logs
+        async for line in DockerService.stream_logs(host, container_id, tail, loop):
+            try:
+                await websocket.send_text(line)
+            except WebSocketDisconnect:
+                break
+            except Exception:
+                break
+                
+    except Exception as e:
+        try:
+            await websocket.send_text(f"Connection error: {str(e)}")
+        except:
+            pass
+    finally:
+        try:
+            await websocket.close()
+        except:
+            pass
 
 from fastapi.responses import RedirectResponse

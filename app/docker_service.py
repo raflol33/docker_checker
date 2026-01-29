@@ -109,7 +109,28 @@ def format_container(host_name: str, c: Dict[str, Any]) -> Dict[str, Any]:
         # or string in older. Let's handle dict primarily as we use {{json .}}.
         if isinstance(c['Labels'], dict):
             labels = c['Labels']
-        # If it's a string, parsing is harder, but let's assume dict for modern docker
+        elif isinstance(c['Labels'], str):
+            # Try to parse properties string "key=value,key2=val"
+            # Fallback: Just look for the specific substring we need if parsing is too complex
+            raw_labels = c['Labels']
+            if 'com.docker.compose.project.working_dir=' in raw_labels:
+                # Extract value manually
+                try:
+                    start = raw_labels.find('com.docker.compose.project.working_dir=') + len('com.docker.compose.project.working_dir=')
+                    # Find end of value (comma or end of string)
+                    end = raw_labels.find(',', start)
+                    if end == -1:
+                        end = len(raw_labels)
+                    labels['com.docker.compose.project.working_dir'] = raw_labels[start:end].strip()
+                except:
+                    pass
+            
+            # Still try to parse others roughly
+            parts = raw_labels.split(',')
+            for part in parts:
+                if '=' in part:
+                    k, v = part.split('=', 1)
+                    labels[k.strip()] = v.strip()
         
     compose_path = labels.get('com.docker.compose.project.working_dir', '')
 
@@ -261,6 +282,34 @@ class DockerService:
                 ssh.close()
 
     @staticmethod
+    async def stop_container(host: DockerHost, container_id: str, loop: asyncio.AbstractEventLoop):
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            container = await loop.run_in_executor(None, client.containers.get, container_id)
+            await loop.run_in_executor(None, container.stop)
+        else:
+            ssh = await DockerService.get_ssh_client(host)
+            try:
+                command = f"docker stop {container_id}"
+                await loop.run_in_executor(None, ssh.exec_command, command)
+            finally:
+                ssh.close()
+
+    @staticmethod
+    async def start_container(host: DockerHost, container_id: str, loop: asyncio.AbstractEventLoop):
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            container = await loop.run_in_executor(None, client.containers.get, container_id)
+            await loop.run_in_executor(None, container.start)
+        else:
+            ssh = await DockerService.get_ssh_client(host)
+            try:
+                command = f"docker start {container_id}"
+                await loop.run_in_executor(None, ssh.exec_command, command)
+            finally:
+                ssh.close()
+
+    @staticmethod
     async def get_logs(host: DockerHost, container_id: str, tail: str, since: str, until: str, search: str, loop: asyncio.AbstractEventLoop) -> str:
         # tail can be int or "all"
         # since/until can be relative string like "5m" or timestamp
@@ -269,7 +318,15 @@ class DockerService:
             client = DockerService.get_local_client()
             container = await loop.run_in_executor(None, client.containers.get, container_id)
             
-            kwargs = {'tail': tail if tail != 'all' else 'all'}
+            kwargs = {}
+            if tail != 'all':
+                try:
+                    kwargs['tail'] = int(tail)
+                except ValueError:
+                    kwargs['tail'] = 'all'
+            else:
+                kwargs['tail'] = 'all'
+                
             if since:
                 kwargs['since'] = since
             if until:
@@ -367,5 +424,86 @@ class DockerService:
                 error = await loop.run_in_executor(None, stderr.read)
                 if exit_status != 0:
                      raise Exception(f"Failed to remove image: {error.decode()}")
+            finally:
+                ssh.close()
+
+    @staticmethod
+    async def stream_logs(host: DockerHost, container_id: str, tail: str, loop: asyncio.AbstractEventLoop):
+        # Generator that yields log lines for WebSocket
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            
+            # Use SDK to stream logs to avoid needing the docker binary
+            # The SDK generator is blocking, so we consume it in a thread.
+            import queue
+            q = queue.Queue()
+            
+            def local_reader_thread():
+                try:
+                    # stream=True returns a blocking generator
+                    # tail must be int or 'all'
+                    t = tail
+                    if t != 'all':
+                        try:
+                            t = int(tail)
+                        except:
+                            t = 'all'
+
+                    container = client.containers.get(container_id)
+                    # logs(stream=True) returns bytes
+                    for line in container.logs(stream=True, tail=t, follow=True):
+                        q.put(line)
+                    q.put(None)
+                except Exception as e:
+                    q.put(f"Error reading local logs: {e}".encode())
+                    q.put(None)
+
+            # Start reader thread as daemon (fire and forget)
+            import threading
+            t_thread = threading.Thread(target=local_reader_thread, daemon=True)
+            t_thread.start()
+
+            while True:
+                # Retrieve from queue asynchronously
+                chunk = await loop.run_in_executor(None, q.get)
+                if chunk is None:
+                    break
+                yield chunk.decode('utf-8', errors='replace')
+
+        else:
+            ssh = await DockerService.get_ssh_client(host)
+            try:
+                # Combining stdout and stderr
+                command = f"docker logs -f --tail {tail} {container_id} 2>&1"
+                stdin, stdout, stderr = await loop.run_in_executor(None, ssh.exec_command, command)
+                
+                # Paramiko stream reader workaround
+                import queue
+                q = queue.Queue()
+                
+                def reader_thread():
+                    while True:
+                        try:
+                            data = stdout.channel.recv(1024)
+                            if not data:
+                                break
+                            q.put(data)
+                        except:
+                            break
+                    q.put(None) 
+
+                # Use threading for remote reader too (critical fix)
+                import threading
+                t_thread = threading.Thread(target=reader_thread, daemon=True)
+                t_thread.start()
+
+                while True:
+                    chunk = await loop.run_in_executor(None, q.get)
+                    if chunk is None:
+                        break
+                    yield chunk.decode('utf-8', errors='replace')
+            
+            except Exception:
+                yield f"Error streaming from {host.name}\n"
             finally:
                 ssh.close()

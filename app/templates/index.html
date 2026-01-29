@@ -5,17 +5,25 @@
     <!-- Sidebar / Hosts -->
     <div class="lg:col-span-1 space-y-6">
         <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
-            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <span>🖥️</span> Управляемые Хосты
+            <h2 class="text-lg font-bold mb-4 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span>🖥️</span> Управляемые Хосты
+                </div>
+                <button hx-get="/containers/list" hx-target="#container-list"
+                    class="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition text-gray-300">
+                    Все
+                </button>
             </h2>
             <ul class="space-y-2 mb-4">
                 {% for host in hosts %}
-                <li class="flex justify-between items-center bg-gray-700/50 p-2 rounded text-sm">
-                    <span class="font-mono">{{ host.name }}</span>
+                <li class="flex justify-between items-center bg-gray-700/50 p-2 rounded text-sm hover:bg-gray-700 transition group cursor-pointer"
+                    hx-get="/containers/list?host_name={{ host.name }}" hx-target="#container-list">
+                    <span class="font-mono group-hover:text-blue-300 font-bold transition">{{ host.name }}</span>
                     <div class="flex items-center gap-2">
                         <button
                             class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-2 py-1 rounded border border-purple-700 transition"
-                            hx-get="/images/{{ host.name }}" hx-target="body" hx-swap="beforeend">
+                            hx-get="/images/{{ host.name }}" hx-target="body" hx-swap="beforeend"
+                            onclick="event.stopPropagation()">
                             Образы
                         </button>
                         <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{ host.type
@@ -83,73 +91,8 @@
                             <th class="px-4 py-3 text-right">Действия</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-700">
-                        {% for c in containers %}
-                        <tr class="hover:bg-gray-700/30 transition">
-                            <td class="px-4 py-3 whitespace-nowrap">
-                                <div class="flex items-center gap-2">
-                                    {% if 'running' in c.state|lower %}
-                                    <span
-                                        class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-                                    {% else %}
-                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-                                    {% endif %}
-                                    <div class="flex flex-col">
-                                        <span class="text-xs text-white uppercase font-bold">{{ c.state }}</span>
-                                        <span class="text-[10px] text-gray-400 font-mono">{{ c.status }}</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 font-medium text-white">{{ c.name }}</td>
-                            <td class="px-4 py-3 text-gray-300 text-xs font-mono whitespace-normal break-all"
-                                title="{{ c.image }}">
-                                {{ c.image }}
-                            </td>
-                            <td class="px-4 py-3 text-gray-400 text-xs font-mono whitespace-nowrap">
-                                {{ c.created }}
-                            </td>
-                            <td class="px-4 py-3 text-gray-400 text-xs font-mono whitespace-normal break-all"
-                                title="{{ c.ports }}">
-                                {{ c.ports }}
-                            </td>
-                            <td class="px-4 py-3 text-blue-400 font-mono text-xs">{{ c.host }}</td>
-                            <td class="px-4 py-3 text-right flex items-center justify-end gap-2">
-                                {% if c.compose_path %}
-                                <form hx-post="/compose/action" hx-swap="none" class="flex gap-1"
-                                    hx-confirm="Выполнить действие Compose для {{ c.compose_path }}?">
-                                    <input type="hidden" name="host_name" value="{{ c.host }}">
-                                    <input type="hidden" name="path" value="{{ c.compose_path }}">
-                                    <button type="submit" name="action" value="down"
-                                        class="bg-red-900/50 hover:bg-red-800 text-red-200 px-2 py-1 rounded border border-red-800 transition text-xs flex items-center gap-1"
-                                        title="Compose Down">
-                                        ⬇
-                                    </button>
-                                    <button type="submit" name="action" value="up"
-                                        class="bg-green-900/50 hover:bg-green-800 text-green-200 px-2 py-1 rounded border border-green-800 transition text-xs flex items-center gap-1"
-                                        title="Compose Up">
-                                        ⬆
-                                    </button>
-                                </form>
-                                {% endif %}
-
-                                <button hx-get="/containers/{{c.host}}/{{c.id}}/logs" hx-target="#modal-content"
-                                    hx-trigger="click" onclick="document.getElementById('log-modal').showModal()"
-                                    class="text-gray-400 hover:text-white transition p-1" title="Логи">
-                                    📜
-                                </button>
-                                <button hx-post="/containers/{{c.host}}/{{c.id}}/restart" hx-swap="none"
-                                    class="text-yellow-500 hover:text-yellow-400 transition p-1" title="Перезапустить">
-                                    🔄
-                                </button>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">
-                                Контейнеры не найдены. Добавьте хост или проверьте соединение.
-                            </td>
-                        </tr>
-                        {% endfor %}
+                    <tbody id="container-list" class="divide-y divide-gray-700">
+                        {% include "partials/container_rows.html" %}
                     </tbody>
                 </table>
             </div>

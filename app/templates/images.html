@@ -38,7 +38,10 @@
                 <tbody class="divide-y divide-gray-700 text-sm">
                     {% for img in images %}
                     <tr class="hover:bg-gray-700/30 transition">
-                        <td class="px-6 py-3 font-mono text-white max-w-xs truncate" title="{{ img.tag }}">{{ img.tag }}
+                        <td class="px-6 py-3 font-mono text-white">
+                            <div class="truncate max-w-[250px]" title="{{ img.tag }}">
+                                {{ img.tag }}
+                            </div>
                         </td>
                         <td class="px-6 py-3 font-mono text-gray-400 text-xs">{{ img.id[:12] }}</td>
                         <td class="px-6 py-3 text-gray-300">{{ img.created }}</td>

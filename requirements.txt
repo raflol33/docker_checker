@@ -9,5 +9,6 @@ bcrypt
 
 
 python-multipart
+websockets
 jinja2
 httpx

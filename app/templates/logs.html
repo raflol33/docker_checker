@@ -22,6 +22,14 @@
             <input type="datetime-local" name="until" value="{{ until|default('', true) }}" title="Конец"
                 class="bg-gray-800 text-gray-200 text-xs py-1 px-2 rounded border border-gray-600 focus:border-blue-500 outline-none">
 
+            <!-- Real-time Toggle -->
+            <label
+                class="flex items-center space-x-2 cursor-pointer bg-gray-700 px-2 py-1 rounded hover:bg-gray-600 transition ml-2">
+                <input type="checkbox" id="realtime-toggle"
+                    class="form-checkbox h-3 w-3 text-green-500 rounded sm:h-4 sm:w-4" onchange="toggleRealtime(this)">
+                <span class="text-xs text-gray-300 font-bold">Live</span>
+            </label>
+
             <!-- Search -->
             <input type="text" name="search" value="{{ search|default('', true) }}" placeholder="Поиск текста..."
                 class="bg-gray-800 text-gray-200 text-xs py-1 px-2 rounded border border-gray-600 focus:border-blue-500 outline-none w-28">
@@ -57,7 +65,7 @@
                 </svg>
                 Скачать
             </a>
-            <button onclick="document.getElementById('logs-modal').classList.add('hidden')"
+            <button onclick="document.getElementById('log-modal').close()"
                 class="text-gray-400 hover:text-white transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -67,8 +75,92 @@
         </div>
     </div>
 
-    <div
+    <!-- Static Logs View -->
+    <div id="log-content-static"
         class="bg-black p-4 overflow-auto flex-1 font-mono text-xs text-gray-300 leading-relaxed whitespace-pre h-[60vh] custom-scrollbar">
         {{ logs }}
     </div>
+
+    <!-- Live Logs View (Hidden by default) -->
+    <div id="log-content-live"
+        class="bg-[#0c0c0c] p-4 overflow-auto flex-1 font-mono text-xs text-green-400 leading-relaxed whitespace-pre h-[60vh] custom-scrollbar hidden border-t-2 border-green-900/30">
+        <div class="text-center text-gray-500 my-4 select-none">--- Ожидание подключения к Live Stream ---</div>
+    </div>
+
+    <script>
+        var ws = null;
+        var hostName = "{{ host_name }}";
+        var containerId = "{{ container_id }}";
+        var staticView = document.getElementById('log-content-static');
+        var liveView = document.getElementById('log-content-live');
+
+        // Scroll to bottom initially
+        if (staticView) staticView.scrollTop = staticView.scrollHeight;
+
+        function toggleRealtime(checkbox) {
+            if (checkbox.checked) {
+                // Enable Live Mode
+                staticView.classList.add('hidden');
+                liveView.classList.remove('hidden');
+                startWebSocket();
+            } else {
+                // Disable Live Mode
+                staticView.classList.remove('hidden');
+                liveView.classList.add('hidden');
+                stopWebSocket();
+            }
+        }
+
+        function startWebSocket() {
+            if (ws) return;
+
+            // Get tail value from input
+            var tailInput = document.querySelector('input[name="tail"]');
+            var tailValue = tailInput ? tailInput.value : "100";
+
+            liveView.innerHTML = '<div class="text-gray-500 mb-2">--- Подключение... ---</div>';
+
+            var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            var url = `${protocol}//${window.location.host}/ws/logs/${hostName}/${containerId}?tail=${tailValue}`;
+
+            ws = new WebSocket(url);
+
+            ws.onopen = function () {
+                liveView.innerHTML = '<div class="text-green-500 font-bold mb-2">--- Live Stream Connected ---</div>';
+            };
+
+            ws.onmessage = function (event) {
+                var isScrolledToBottom = Math.abs(liveView.scrollHeight - liveView.clientHeight - liveView.scrollTop) < 50;
+
+                // Append text directly
+                liveView.append(event.data);
+
+                if (isScrolledToBottom) {
+                    liveView.scrollTop = liveView.scrollHeight;
+                }
+            };
+
+            ws.onclose = function () {
+                var marker = document.createElement('div');
+                marker.className = "text-red-500 font-bold my-2";
+                marker.textContent = "--- Live Stream Closed ---";
+                liveView.appendChild(marker);
+                ws = null;
+            };
+
+            ws.onerror = function (err) {
+                console.error("WS Error", err);
+                var marker = document.createElement('div');
+                marker.className = "text-red-500 font-bold my-2";
+                marker.textContent = "--- Connection Error (Check Logs) ---";
+                liveView.appendChild(marker);
+            }
+        }
+
+        function stopWebSocket() {
+            if (ws) {
+                ws.close();
+            }
+        }
+    </script>
 </div>
