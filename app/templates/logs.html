@@ -77,13 +77,13 @@
 
     <!-- Static Logs View -->
     <div id="log-content-static"
-        class="bg-black p-4 overflow-auto flex-1 font-mono text-xs text-gray-300 leading-relaxed whitespace-pre h-[60vh] custom-scrollbar">
+        class="bg-black p-4 overflow-auto flex-1 font-mono text-xs text-gray-300 leading-relaxed whitespace-pre-wrap break-all h-full custom-scrollbar">
         {{ logs }}
     </div>
 
     <!-- Live Logs View (Hidden by default) -->
     <div id="log-content-live"
-        class="bg-[#0c0c0c] p-4 overflow-auto flex-1 font-mono text-xs text-green-400 leading-relaxed whitespace-pre h-[60vh] custom-scrollbar hidden border-t-2 border-green-900/30">
+        class="bg-[#0c0c0c] p-4 overflow-auto flex-1 font-mono text-xs text-green-400 leading-relaxed whitespace-pre-wrap break-all h-full custom-scrollbar hidden border-t-2 border-green-900/30">
         <div class="text-center text-gray-500 my-4 select-none">--- Ожидание подключения к Live Stream ---</div>
     </div>
 

@@ -203,6 +203,18 @@ class DockerService:
                             data = json.loads(line)
                             # Remap keys to match SDK attrs mostly
                             # CLI JSON keys: Command, CreatedAt, ID, Image, Labels, LocalVolumes, Mounts, Names, Networks, Ports, RunningFor, Size, State, Status
+                            
+                            # Parse labels string "key=value,key2=val" into dict
+                            labels_str = data.get("Labels", "")
+                            labels = {}
+                            if labels_str:
+                                for l in labels_str.split(','):
+                                    if '=' in l:
+                                        k, v = l.split('=', 1)
+                                        labels[k] = v
+                                    else:
+                                        labels[l] = ""
+
                             remapped = {
                                 "Id": data.get("ID"),
                                 "Names": [data.get("Names")],
@@ -210,7 +222,8 @@ class DockerService:
                                 "State": data.get("State"), # e.g. "running"
                                 "Status": data.get("Status"), # e.g. "Up 2 hours"
                                 "Ports": data.get("Ports"),
-                                "Created": data.get("CreatedAt") 
+                                "Created": data.get("CreatedAt"),
+                                "Labels": labels 
                             }
                             containers.append(format_container(host.name, remapped))
                         except json.JSONDecodeError:
@@ -375,8 +388,12 @@ class DockerService:
 
     @staticmethod
     async def run_compose(host: DockerHost, path: str, action: str, loop: asyncio.AbstractEventLoop):
-        # action: "up" or "down"
-        cmd_action = "up -d" if action == "up" else "down"
+        # action: "up", "down", "restart"
+        if action == "restart":
+            cmd_action = "down && docker-compose up -d"
+        else:
+            cmd_action = "up -d" if action == "up" else "down"
+            
         # path is the directory containing docker-compose.yml
         
         full_command = f"cd {path} && docker-compose {cmd_action}"

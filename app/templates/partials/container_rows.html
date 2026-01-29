@@ -28,18 +28,13 @@
     <td class="px-4 py-3 text-right flex items-center justify-end gap-2">
         {% if c.compose_path %}
         <form hx-post="/compose/action" hx-swap="none" class="flex gap-1"
-            hx-confirm="Выполнить действие Compose для {{ c.compose_path }}?">
+            hx-confirm="Перезапустить проект Compose (down && up -d)?">
             <input type="hidden" name="host_name" value="{{ c.host }}">
             <input type="hidden" name="path" value="{{ c.compose_path }}">
-            <button type="submit" name="action" value="down"
-                class="bg-red-900/50 hover:bg-red-800 text-red-200 px-2 py-1 rounded border border-red-800 transition text-xs flex items-center gap-1"
-                title="Compose Down">
-                ⬇
-            </button>
-            <button type="submit" name="action" value="up"
-                class="bg-green-900/50 hover:bg-green-800 text-green-200 px-2 py-1 rounded border border-green-800 transition text-xs flex items-center gap-1"
-                title="Compose Up">
-                ⬆
+            <button type="submit" name="action" value="restart"
+                class="bg-blue-900/50 hover:bg-blue-800 text-blue-200 px-2 py-1 rounded border border-blue-800 transition text-xs flex items-center gap-1 font-bold"
+                title="Перезапустить Проект (Down & Up)">
+                RESTART PROJECT
             </button>
         </form>
         {% endif %}
