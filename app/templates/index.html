@@ -132,14 +132,32 @@
                                 {{ c.ports }}
                             </td>
                             <td class="px-4 py-3 text-blue-400 font-mono text-xs">{{ c.host }}</td>
-                            <td class="px-4 py-3 text-right space-x-2">
+                            <td class="px-4 py-3 text-right flex items-center justify-end gap-2">
+                                {% if c.compose_path %}
+                                <form hx-post="/compose/action" hx-swap="none" class="flex gap-1"
+                                    hx-confirm="Выполнить действие Compose для {{ c.compose_path }}?">
+                                    <input type="hidden" name="host_name" value="{{ c.host }}">
+                                    <input type="hidden" name="path" value="{{ c.compose_path }}">
+                                    <button type="submit" name="action" value="down"
+                                        class="bg-red-900/50 hover:bg-red-800 text-red-200 px-2 py-1 rounded border border-red-800 transition text-xs flex items-center gap-1"
+                                        title="Compose Down">
+                                        ⬇
+                                    </button>
+                                    <button type="submit" name="action" value="up"
+                                        class="bg-green-900/50 hover:bg-green-800 text-green-200 px-2 py-1 rounded border border-green-800 transition text-xs flex items-center gap-1"
+                                        title="Compose Up">
+                                        ⬆
+                                    </button>
+                                </form>
+                                {% endif %}
+
                                 <button hx-get="/containers/{{c.host}}/{{c.id}}/logs" hx-target="#modal-content"
                                     hx-trigger="click" onclick="document.getElementById('log-modal').showModal()"
-                                    class="text-gray-400 hover:text-white transition">
-                                    📜 Логи
+                                    class="text-gray-400 hover:text-white transition p-1" title="Логи">
+                                    📜
                                 </button>
                                 <button hx-post="/containers/{{c.host}}/{{c.id}}/restart" hx-swap="none"
-                                    class="text-yellow-500 hover:text-yellow-400 transition" title="Перезапустить">
+                                    class="text-yellow-500 hover:text-yellow-400 transition p-1" title="Перезапустить">
                                     🔄
                                 </button>
                             </td>

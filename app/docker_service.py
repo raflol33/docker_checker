@@ -98,6 +98,21 @@ def format_container(host_name: str, c: Dict[str, Any]) -> Dict[str, Any]:
     if created and len(created) > 19: 
         created = created.replace('T', ' ')[:19]
 
+    # Labels & Compose Path
+    labels = {}
+    if 'Config' in c and 'Labels' in c['Config']:
+        labels = c['Config']['Labels'] or {}
+    elif 'Labels' in c:
+        # CLI JSON: Labels can be "key=value,key2=val2" string OR dict depending on version/format
+        # "docker ps --format json" usually returns a comma-separated string for .Labels if not using {{json .}} properly
+        # But we use {{json .}} which returns object/map for Labels in newer Docker, 
+        # or string in older. Let's handle dict primarily as we use {{json .}}.
+        if isinstance(c['Labels'], dict):
+            labels = c['Labels']
+        # If it's a string, parsing is harder, but let's assume dict for modern docker
+        
+    compose_path = labels.get('com.docker.compose.project.working_dir', '')
+
     return {
         "id": c.get("Id", c.get("ID", ""))[:12],
         "name": name,
@@ -107,7 +122,8 @@ def format_container(host_name: str, c: Dict[str, Any]) -> Dict[str, Any]:
         "status": status_text,
         "ports": ports_str,
         "created": created,
-        "host": host_name
+        "host": host_name,
+        "compose_path": compose_path
     }
 
 
