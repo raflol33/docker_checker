@@ -17,5 +17,4 @@ services:
     # Ensure data dir exists or handle in app logic.
     # App logic uses ./data.db relative by default in database.py but we can override via env.
 
-volumes:
-  data:
+
