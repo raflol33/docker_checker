@@ -14,30 +14,131 @@
                     Все
                 </button>
             </h2>
-            <ul class="space-y-2 mb-4">
-                {% for host in hosts %}
-                <li class="flex justify-between items-center bg-gray-700/50 p-2 rounded text-sm hover:bg-gray-700 transition group cursor-pointer"
-                    hx-get="/containers/list?host_name={{ host.name }}" hx-target="#container-list">
-                    <span class="font-mono group-hover:text-blue-300 font-bold transition">{{ host.name }}</span>
-                    <div class="flex items-center gap-2">
-                        <button
-                            class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-2 py-1 rounded border border-purple-700 transition"
-                            hx-get="/images/{{ host.name }}" hx-target="body" hx-swap="beforeend"
-                            onclick="event.stopPropagation()">
-                            Образы
-                        </button>
-                        <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{ host.type
-                            }}</span>
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
 
+            <!-- Host Search -->
+            <div class="mb-4">
+                <div class="relative">
+                    <input type="text" id="host-search" placeholder="Поиск: @hostname или часть имени..."
+                        class="w-full bg-gray-700 rounded-lg p-2 pl-8 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none transition"
+                        oninput="filterHosts(this.value)">
+                    <span class="absolute left-2.5 top-2.5 text-gray-400">🔍</span>
+                </div>
+            </div>
+
+            <!-- Environments -->
+            <div id="hosts-container" class="space-y-3 mb-4">
+                {% for env in environments %}
+                <details class="bg-gray-700/30 rounded-lg overflow-hidden" open>
+                    <summary
+                        class="cursor-pointer px-3 py-2 bg-gradient-to-r from-purple-900/50 to-gray-800 hover:from-purple-800/50 transition flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-purple-400">📁</span>
+                            <span class="font-bold text-purple-200">{{ env.name }}</span>
+                            <span class="text-xs text-gray-400">({{ env.hosts|length }})</span>
+                        </div>
+                        <form action="/environments/{{ env.id }}/delete" method="post" class="inline"
+                            onsubmit="event.stopPropagation(); return confirm('Удалить среду {{ env.name }}? Хосты будут перемещены в Без среды.')">
+                            <button type="submit" class="text-xs text-red-400 hover:text-red-300 px-1"
+                                onclick="event.stopPropagation()">
+                                ✕
+                            </button>
+                        </form>
+                    </summary>
+                    <ul class="p-2 space-y-1">
+                        {% for host in env.hosts %}
+                        <li class="host-item flex justify-between items-center bg-gray-700/50 p-2 rounded text-sm hover:bg-gray-700 transition group cursor-pointer"
+                            data-host-name="{{ host.name|lower }}" hx-get="/containers/list?host_name={{ host.name }}"
+                            hx-target="#container-list">
+                            <span class="font-mono group-hover:text-blue-300 font-bold transition">{{ host.name
+                                }}</span>
+                            <div class="flex items-center gap-1">
+                                <button
+                                    class="text-xs bg-gray-600/50 hover:bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded transition"
+                                    hx-get="/hosts/{{ host.id }}/details" hx-target="body" hx-swap="beforeend"
+                                    onclick="event.stopPropagation()" title="Настройки">
+                                    ⚙️
+                                </button>
+                                <button
+                                    class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-1.5 py-0.5 rounded border border-purple-700 transition"
+                                    hx-get="/images/{{ host.name }}" hx-target="body" hx-swap="beforeend"
+                                    onclick="event.stopPropagation()" title="Образы">
+                                    📦
+                                </button>
+                                <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{
+                                    host.type }}</span>
+                            </div>
+                        </li>
+                        {% else %}
+                        <li class="text-xs text-gray-500 italic px-2">Нет хостов</li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                {% endfor %}
+
+                <!-- Ungrouped Hosts -->
+                {% if ungrouped_hosts %}
+                <details class="bg-gray-700/30 rounded-lg overflow-hidden">
+                    <summary
+                        class="cursor-pointer px-3 py-2 bg-gray-700/50 hover:bg-gray-700 transition flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-400">📂</span>
+                            <span class="font-bold text-gray-400">Без среды</span>
+                            <span class="text-xs text-gray-500">({{ ungrouped_hosts|length }})</span>
+                        </div>
+                    </summary>
+                    <ul class="p-2 space-y-1">
+                        {% for host in ungrouped_hosts %}
+                        <li class="host-item flex justify-between items-center bg-gray-700/50 p-2 rounded text-sm hover:bg-gray-700 transition group cursor-pointer"
+                            data-host-name="{{ host.name|lower }}" hx-get="/containers/list?host_name={{ host.name }}"
+                            hx-target="#container-list">
+                            <span class="font-mono group-hover:text-blue-300 font-bold transition">{{ host.name
+                                }}</span>
+                            <div class="flex items-center gap-1">
+                                <button
+                                    class="text-xs bg-gray-600/50 hover:bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded transition"
+                                    hx-get="/hosts/{{ host.id }}/details" hx-target="body" hx-swap="beforeend"
+                                    onclick="event.stopPropagation()" title="Настройки">
+                                    ⚙️
+                                </button>
+                                <button
+                                    class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-1.5 py-0.5 rounded border border-purple-700 transition"
+                                    hx-get="/images/{{ host.name }}" hx-target="body" hx-swap="beforeend"
+                                    onclick="event.stopPropagation()" title="Образы">
+                                    📦
+                                </button>
+                                <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{
+                                    host.type }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                {% endif %}
+            </div>
+
+            <!-- Add Environment -->
+            <details class="text-sm mb-3">
+                <summary class="cursor-pointer text-purple-400 hover:text-purple-300">➕ Создать Среду</summary>
+                <form action="/environments/add" method="post" class="mt-3 space-y-2 p-2 bg-gray-700/30 rounded">
+                    <input type="text" name="name" placeholder="Название среды (test1, production...)"
+                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
+                    <button class="w-full bg-purple-700 hover:bg-purple-600 text-white p-2 rounded text-xs">Создать
+                        Среду</button>
+                </form>
+            </details>
+
+            <!-- Add Host -->
             <details class="text-sm">
-                <summary class="cursor-pointer text-blue-400 hover:text-blue-300">Добавить Новый Хост</summary>
-                <form action="/hosts/add" method="post" class="mt-4 space-y-3 p-2 bg-gray-700/30 rounded">
+                <summary class="cursor-pointer text-blue-400 hover:text-blue-300">➕ Добавить Хост</summary>
+                <form action="/hosts/add" method="post" class="mt-3 space-y-2 p-2 bg-gray-700/30 rounded">
                     <input type="text" name="name" placeholder="Имя Хоста"
                         class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
+                    <select name="environment_id" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                        <option value="">— Без среды —</option>
+                        {% for env in environments %}
+                        <option value="{{ env.id }}">{{ env.name }}</option>
+                        {% endfor %}
+                    </select>
                     <select name="type" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
                         <option value="ssh">SSH</option>
                         <option value="local">Локальный Сокет</option>
@@ -55,8 +156,6 @@
                 </form>
             </details>
         </div>
-
-
     </div>
 
     <!-- Main Content / Containers -->
@@ -74,10 +173,15 @@
 
         <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
             <div class="p-4 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
-                <h2 class="text-xl font-bold">📦 Контейнеры</h2>
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    📦 Контейнеры
+                    <span id="ws-status" class="w-2 h-2 rounded-full bg-red-500 transition"
+                        title="Realtime статус"></span>
+                </h2>
                 <button onclick="location.reload()"
                     class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm">Обновить</button>
             </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs text-gray-400 uppercase bg-gray-700/50">
@@ -129,4 +233,112 @@
         </div>
     </div>
 </dialog>
+
+<script>
+    // ===== Host Search Filter =====
+    function filterHosts(query) {
+        const searchTerm = query.replace(/^@/, '').toLowerCase().trim();
+
+        const hostItems = document.querySelectorAll('.host-item');
+        const envSections = document.querySelectorAll('#hosts-container > details');
+
+        hostItems.forEach(item => {
+            const hostName = item.getAttribute('data-host-name') || '';
+            const matches = searchTerm === '' || hostName.includes(searchTerm);
+            item.style.display = matches ? '' : 'none';
+        });
+
+        envSections.forEach(section => {
+            const visibleHosts = section.querySelectorAll('.host-item:not([style*="display: none"])');
+            section.style.display = visibleHosts.length > 0 || searchTerm === '' ? '' : 'none';
+            if (searchTerm !== '' && visibleHosts.length > 0) {
+                section.open = true;
+            }
+        });
+    }
+
+    // ===== Realtime Container Status =====
+    let statusSocket = null;
+    let currentHostFilter = null;
+
+    function connectStatusWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/containers/status`;
+
+        statusSocket = new WebSocket(wsUrl);
+
+        statusSocket.onopen = function () {
+            console.log('📡 Status WebSocket connected');
+            document.getElementById('ws-status')?.classList.add('bg-green-500');
+            document.getElementById('ws-status')?.classList.remove('bg-red-500');
+        };
+
+        statusSocket.onmessage = function (event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'status_update') {
+                    updateContainerTable(data.containers);
+                }
+            } catch (e) {
+                console.error('Parse error:', e);
+            }
+        };
+
+        statusSocket.onclose = function () {
+            console.log('❌ Status WebSocket closed, reconnecting...');
+            document.getElementById('ws-status')?.classList.remove('bg-green-500');
+            document.getElementById('ws-status')?.classList.add('bg-red-500');
+            // Reconnect after 3 seconds
+            setTimeout(connectStatusWebSocket, 3000);
+        };
+
+        statusSocket.onerror = function (error) {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    function updateContainerTable(containers) {
+        // Filter by current host if selected
+        let filtered = containers;
+        if (currentHostFilter) {
+            filtered = containers.filter(c => c.host === currentHostFilter);
+        }
+
+        const tbody = document.getElementById('container-list');
+        if (!tbody || filtered.length === 0) return;
+
+        // Update existing rows or rebuild
+        filtered.forEach(c => {
+            const row = document.querySelector(`tr[data-container-id="${c.id}"]`);
+            if (row) {
+                // Update status cell
+                const statusCell = row.querySelector('.status-cell');
+                if (statusCell) {
+                    const isRunning = c.state.toLowerCase().includes('running');
+                    statusCell.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}"></span>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-white uppercase font-bold">${c.state}</span>
+                                <span class="text-[10px] text-gray-400 font-mono">${c.status}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        });
+    }
+
+    // Track host filter changes
+    document.addEventListener('htmx:afterRequest', function (evt) {
+        const url = evt.detail.requestConfig?.path;
+        if (url && url.includes('/containers/list')) {
+            const match = url.match(/host_name=([^&]+)/);
+            currentHostFilter = match ? decodeURIComponent(match[1]) : null;
+        }
+    });
+
+    // Start WebSocket connection
+    document.addEventListener('DOMContentLoaded', connectStatusWebSocket);
+</script>
 {% endblock %}

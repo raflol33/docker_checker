@@ -1,0 +1,80 @@
+<!-- Host Details Modal Partial -->
+<dialog id="host-details-modal" class="bg-transparent p-0 w-[95%] max-w-lg backdrop:bg-black/80">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl">
+        <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800 rounded-t-lg">
+            <h3 class="font-bold flex items-center gap-2">
+                <span>⚙️</span> Настройки Хоста
+            </h3>
+            <button onclick="document.getElementById('host-details-modal').close()"
+                class="text-gray-400 hover:text-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div class="text-gray-400">Имя:</div>
+                <div class="font-mono font-bold text-white">{{ host.name }}</div>
+                
+                <div class="text-gray-400">Тип подключения:</div>
+                <div>
+                    {% if host.type == 'local' %}
+                    <span class="px-2 py-1 bg-green-900/50 text-green-300 rounded text-xs">Локальный Сокет</span>
+                    {% else %}
+                    <span class="px-2 py-1 bg-blue-900/50 text-blue-300 rounded text-xs">SSH</span>
+                    {% endif %}
+                </div>
+                
+                {% if host.type == 'ssh' %}
+                <div class="text-gray-400">IP Адрес:</div>
+                <div class="font-mono">{{ host.ip or '—' }}</div>
+                
+                <div class="text-gray-400">Порт:</div>
+                <div class="font-mono">{{ host.port or 22 }}</div>
+                
+                <div class="text-gray-400">SSH Пользователь:</div>
+                <div class="font-mono">{{ host.ssh_user or '—' }}</div>
+                
+                <div class="text-gray-400">Аутентификация:</div>
+                <div>
+                    {% if host.ssh_password %}
+                    <span class="text-yellow-400">Пароль</span>
+                    {% elif host.ssh_key_path %}
+                    <span class="text-green-400">SSH Ключ</span>
+                    {% else %}
+                    <span class="text-gray-500">—</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <div class="text-gray-400">Среда:</div>
+                <div>
+                    {% if host.environment %}
+                    <span class="px-2 py-1 bg-purple-900/50 text-purple-300 rounded text-xs">{{ host.environment.name }}</span>
+                    {% else %}
+                    <span class="text-gray-500">Без среды</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-gray-700 flex gap-2 justify-end">
+                <form action="/hosts/{{ host.id }}/delete" method="post" 
+                      onsubmit="return confirm('Удалить хост {{ host.name }}?')">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded text-sm transition">
+                        🗑️ Удалить хост
+                    </button>
+                </form>
+                <button onclick="document.getElementById('host-details-modal').close()"
+                        class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<script>
+    document.getElementById('host-details-modal').showModal();
+</script>

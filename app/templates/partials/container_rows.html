@@ -1,6 +1,7 @@
 {% for c in containers %}
-<tr class="hover:bg-gray-700/30 transition">
-    <td class="px-4 py-3 whitespace-nowrap">
+<tr class="hover:bg-gray-700/30 transition" data-container-id="{{ c.id }}">
+    <!-- Status -->
+    <td class="px-4 py-3 whitespace-nowrap status-cell">
         <div class="flex items-center gap-2">
             {% if 'running' in c.state|lower %}
             <span
@@ -14,59 +15,102 @@
             </div>
         </div>
     </td>
-    <td class="px-4 py-3 font-medium text-white">{{ c.name }}</td>
-    <td class="px-4 py-3 text-gray-300 text-xs font-mono whitespace-normal break-all" title="{{ c.image }}">
-        {{ c.image }}
+
+    <!-- Name -->
+    <td class="px-4 py-3">
+        <div class="flex flex-col">
+            <span class="font-semibold text-white truncate max-w-[180px]" title="{{ c.name }}">{{ c.name }}</span>
+            <span class="text-[10px] text-gray-500 font-mono">{{ c.id }}</span>
+        </div>
     </td>
+
+    <!-- Image -->
+    <td class="px-4 py-3">
+        <div class="max-w-[200px]">
+            {% set image_parts = c.image.split(':') %}
+            {% set image_name = image_parts[0].split('/')[-1] if '/' in image_parts[0] else image_parts[0] %}
+            {% set image_tag = image_parts[1] if image_parts|length > 1 else 'latest' %}
+            <span class="text-gray-300 text-xs font-mono truncate block" title="{{ c.image }}">{{ image_name }}</span>
+            <span class="text-[10px] text-purple-400 font-mono">:{{ image_tag }}</span>
+        </div>
+    </td>
+
+    <!-- Created -->
     <td class="px-4 py-3 text-gray-400 text-xs font-mono whitespace-nowrap">
         {{ c.created }}
     </td>
-    <td class="px-4 py-3 text-gray-400 text-xs font-mono whitespace-normal break-all" title="{{ c.ports }}">
-        {{ c.ports }}
-    </td>
-    <td class="px-4 py-3 text-blue-400 font-mono text-xs">{{ c.host }}</td>
-    <td class="px-4 py-3 text-right flex items-center justify-end gap-2">
-        {% if c.compose_path %}
-        <form hx-post="/compose/action" hx-swap="none" class="flex gap-1"
-            hx-confirm="Перезапустить проект Compose (down && up -d)?">
-            <input type="hidden" name="host_name" value="{{ c.host }}">
-            <input type="hidden" name="path" value="{{ c.compose_path }}">
-            <button type="submit" name="action" value="restart"
-                class="bg-blue-900/50 hover:bg-blue-800 text-blue-200 px-2 py-1 rounded border border-blue-800 transition text-xs flex items-center gap-1 font-bold"
-                title="Перезапустить Проект (Down & Up)">
-                RESTART PROJECT
-            </button>
-        </form>
-        {% endif %}
 
-        <button hx-get="/containers/{{c.host}}/{{c.id}}/logs" hx-target="#modal-content" hx-trigger="click"
-            onclick="document.getElementById('log-modal').showModal()"
-            class="text-gray-400 hover:text-white transition p-1" title="Логи">
-            📜
-        </button>
-
-        {% if 'running' in c.state|lower %}
-        <button hx-post="/containers/{{c.host}}/{{c.id}}/stop" hx-swap="none"
-            class="text-red-500 hover:text-red-400 transition p-1" title="Остановить">
-            ⛔
-        </button>
+    <!-- Ports -->
+    <td class="px-4 py-3">
+        {% if c.ports %}
+        <div class="flex flex-wrap gap-1 max-w-[180px]">
+            {% for port in c.ports.split(', ') %}
+            <span
+                class="px-1.5 py-0.5 bg-blue-900/30 text-blue-300 rounded text-[10px] font-mono border border-blue-800/50">
+                {{ port }}
+            </span>
+            {% endfor %}
+        </div>
         {% else %}
-        <button hx-post="/containers/{{c.host}}/{{c.id}}/start" hx-swap="none"
-            class="text-green-500 hover:text-green-400 transition p-1" title="Запустить">
-            ▶️
-        </button>
+        <span class="text-gray-600 text-xs">—</span>
         {% endif %}
+    </td>
 
-        <button hx-post="/containers/{{c.host}}/{{c.id}}/restart" hx-swap="none"
-            class="text-yellow-500 hover:text-yellow-400 transition p-1" title="Перезапустить">
-            🔄
-        </button>
+    <!-- Host -->
+    <td class="px-4 py-3">
+        <span class="px-2 py-0.5 bg-gray-700 text-blue-300 rounded text-xs font-mono">{{ c.host }}</span>
+    </td>
+
+    <!-- Actions -->
+    <td class="px-4 py-3">
+        <div class="flex items-center justify-end gap-1">
+            {% if c.compose_path %}
+            <form hx-post="/compose/action" hx-swap="none" class="inline"
+                hx-confirm="Перезапустить проект Compose (down && up -d)?">
+                <input type="hidden" name="host_name" value="{{ c.host }}">
+                <input type="hidden" name="path" value="{{ c.compose_path }}">
+                <button type="submit" name="action" value="restart"
+                    class="bg-blue-900/50 hover:bg-blue-800 text-blue-200 px-2 py-1 rounded border border-blue-800 transition text-[10px] font-bold"
+                    title="Перезапустить Проект">
+                    ⬇⬆
+                </button>
+            </form>
+            {% endif %}
+
+            <button hx-get="/containers/{{c.host}}/{{c.id}}/logs" hx-target="#modal-content" hx-trigger="click"
+                onclick="document.getElementById('log-modal').showModal()"
+                class="text-gray-400 hover:text-white transition p-1 hover:bg-gray-700 rounded" title="Логи">
+                📜
+            </button>
+
+            {% if 'running' in c.state|lower %}
+            <button hx-post="/containers/{{c.host}}/{{c.id}}/stop" hx-swap="none"
+                class="text-red-500 hover:text-red-400 transition p-1 hover:bg-gray-700 rounded" title="Остановить">
+                ⛔
+            </button>
+            {% else %}
+            <button hx-post="/containers/{{c.host}}/{{c.id}}/start" hx-swap="none"
+                class="text-green-500 hover:text-green-400 transition p-1 hover:bg-gray-700 rounded" title="Запустить">
+                ▶️
+            </button>
+            {% endif %}
+
+            <button hx-post="/containers/{{c.host}}/{{c.id}}/restart" hx-swap="none"
+                class="text-yellow-500 hover:text-yellow-400 transition p-1 hover:bg-gray-700 rounded"
+                title="Перезапустить">
+                🔄
+            </button>
+        </div>
     </td>
 </tr>
 {% else %}
 <tr>
     <td colspan="7" class="px-4 py-8 text-center text-gray-500">
-        Контейнеры не найдены. Добавьте хост или проверьте соединение.
+        <div class="flex flex-col items-center gap-2">
+            <span class="text-3xl">📭</span>
+            <span>Контейнеры не найдены</span>
+            <span class="text-xs text-gray-600">Добавьте хост или выберите существующий</span>
+        </div>
     </td>
 </tr>
 {% endfor %}

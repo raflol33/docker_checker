@@ -4,40 +4,34 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
-from ..database import DockerHost, AsyncSessionLocal
+from sqlalchemy.orm import selectinload
+from ..database import DockerHost, Environment, AsyncSessionLocal
 from ..auth import get_current_user, get_db
 from ..docker_service import DockerService
 from typing import Optional
+from fastapi.responses import RedirectResponse
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    # List all hosts
-    result = await db.execute(select(DockerHost))
-    hosts = result.scalars().all()
+    # List all environments with their hosts
+    env_result = await db.execute(select(Environment).options(selectinload(Environment.hosts)))
+    environments = env_result.scalars().all()
     
-    # Validations...
-    # Return empty list initially to allow user to select host.
-    # The template should handle empty state gracefully.
+    # List hosts without environment (ungrouped)
+    ungrouped_result = await db.execute(select(DockerHost).where(DockerHost.environment_id == None))
+    ungrouped_hosts = ungrouped_result.scalars().all()
     
     all_containers = []
     errors = []
-    
-    # loop = asyncio.get_running_loop()
-    
-    # for host in hosts:
-    #     try:
-    #         containers = await DockerService.list_containers(host, loop)
-    #         all_containers.extend(containers)
-    #     except Exception as e:
-    #         errors.append(f"Ошибка подключения к {host.name}: {str(e)}")
             
     return templates.TemplateResponse("index.html", {
         "request": request, 
         "user": user, 
-        "hosts": hosts, 
+        "environments": environments,
+        "ungrouped_hosts": ungrouped_hosts,
         "containers": all_containers,
         "errors": errors
     })
@@ -77,11 +71,43 @@ async def list_containers_filtered(
         "containers": containers
     })
 
+# ===== ENVIRONMENT ENDPOINTS =====
+
+@router.post("/environments/add")
+async def add_environment(
+    name: str = Form(...),
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    new_env = Environment(name=name)
+    db.add(new_env)
+    await db.commit()
+    return RedirectResponse("/", status_code=303)
+
+@router.post("/environments/{env_id}/delete")
+async def delete_environment(
+    env_id: int,
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Set hosts in this environment to ungrouped
+    result = await db.execute(select(DockerHost).where(DockerHost.environment_id == env_id))
+    hosts = result.scalars().all()
+    for host in hosts:
+        host.environment_id = None
+    
+    await db.execute(delete(Environment).where(Environment.id == env_id))
+    await db.commit()
+    return RedirectResponse("/", status_code=303)
+
+# ===== HOST ENDPOINTS =====
+
 @router.post("/hosts/add")
 async def add_host(
     request: Request,
     name: str = Form(...),
     type: str = Form(...),
+    environment_id: int = Form(None),
     ip: str = Form(None),
     port: int = Form(None),
     ssh_user: str = Form(None),
@@ -89,21 +115,35 @@ async def add_host(
     user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Determine if local (only one local host allowed usually, but logic allows multiple pointing to same?)
-    # Validations...
     new_host = DockerHost(
         name=name,
         type=type,
+        environment_id=environment_id if environment_id else None,
         ip=ip,
         port=port,
         ssh_user=ssh_user,
         ssh_password=ssh_password,
-        ssh_key_path="/root/.ssh/id_rsa" if type == 'ssh' and not ssh_password else None # simplified assumption for now
+        ssh_key_path="/root/.ssh/id_rsa" if type == 'ssh' and not ssh_password else None
     )
     db.add(new_host)
     await db.commit()
-    # Return updated host list or redirect
-    return RedirectResponse("/", status_code=303) # 303 for See Other after generic POST
+    return RedirectResponse("/", status_code=303)
+
+@router.get("/hosts/{host_id}/details", response_class=HTMLResponse)
+async def get_host_details(
+    request: Request,
+    host_id: int,
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(DockerHost).where(DockerHost.id == host_id))
+    host = result.scalar_one_or_none()
+    if not host:
+        raise HTTPException(status_code=404, detail="Хост не найден")
+    return templates.TemplateResponse("partials/host_details.html", {
+        "request": request,
+        "host": host
+    })
 
 @router.post("/hosts/{host_id}/delete")
 async def delete_host(host_id: int, user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -319,3 +359,59 @@ async def websocket_logs(
             pass
 
 from fastapi.responses import RedirectResponse
+
+@router.websocket("/ws/containers/status")
+async def websocket_container_status(
+    websocket: WebSocket,
+    db: AsyncSession = Depends(get_db)
+):
+    """WebSocket endpoint for realtime container status updates"""
+    await websocket.accept()
+    
+    try:
+        loop = asyncio.get_running_loop()
+        
+        while True:
+            try:
+                # Fetch all hosts
+                result = await db.execute(select(DockerHost))
+                hosts = result.scalars().all()
+                
+                all_containers = []
+                for host in hosts:
+                    try:
+                        containers = await DockerService.list_containers(host, loop)
+                        all_containers.extend(containers)
+                    except Exception:
+                        pass
+                
+                # Send status update as JSON
+                import json
+                await websocket.send_text(json.dumps({
+                    "type": "status_update",
+                    "containers": all_containers
+                }))
+                
+                # Wait 5 seconds before next update
+                await asyncio.sleep(5)
+                
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                # Try to send error but don't crash
+                try:
+                    await websocket.send_text(json.dumps({
+                        "type": "error",
+                        "message": str(e)
+                    }))
+                except:
+                    break
+                await asyncio.sleep(5)
+                
+    except Exception:
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except:
+            pass

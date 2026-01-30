@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, Text, Boolean
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import String, Integer, Text, Boolean, ForeignKey
 import os
 
 
@@ -21,12 +21,25 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
 
+class Environment(Base):
+    __tablename__ = "environments"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    
+    # Relationship to hosts
+    hosts: Mapped[list["DockerHost"]] = relationship("DockerHost", back_populates="environment")
+
 class DockerHost(Base):
     __tablename__ = "docker_hosts"
     
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     type: Mapped[str] = mapped_column(String(20)) # 'local' or 'ssh'
+    
+    # Environment relationship
+    environment_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("environments.id"), nullable=True)
+    environment: Mapped["Environment | None"] = relationship("Environment", back_populates="hosts")
     
     # Connection details
     ip: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -41,3 +54,4 @@ class DockerHost(Base):
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
