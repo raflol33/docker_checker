@@ -1,19 +1,21 @@
 <!-- Terminal Modal -->
-<dialog id="terminal-modal" class="bg-transparent p-0 w-[95%] max-w-5xl backdrop:bg-black/90 h-[80vh]">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl flex flex-col h-full">
-        <div class="p-3 border-b border-gray-800 flex justify-between items-center bg-gray-800 rounded-t-lg">
-            <h3 class="font-bold flex items-center gap-2 text-sm">
-                <span>🖥️</span> Terminal: <span id="terminal-container-name" class="text-blue-400 font-mono"></span>
+<dialog id="terminal-modal" class="bg-transparent p-0 w-[95%] max-w-5xl h-[80vh]">
+    <div class="bg-[#0a0a0f] border border-purple-800/50 rounded-2xl shadow-2xl flex flex-col h-full glow-purple">
+        <div class="p-4 border-b border-purple-900/50 flex justify-between items-center bg-gradient-to-r from-[#12121a] to-[#16162a] rounded-t-2xl">
+            <h3 class="font-bold flex items-center gap-3 text-sm">
+                <span class="text-lg">🖥️</span>
+                <span class="text-purple-200">Terminal:</span>
+                <span id="terminal-container-name" class="text-purple-400 font-mono"></span>
             </h3>
-            <div class="flex items-center gap-2">
-                <span id="terminal-status" class="text-xs text-gray-500">Connecting...</span>
+            <div class="flex items-center gap-3">
+                <span id="terminal-status" class="text-xs text-gray-500 px-3 py-1 bg-purple-900/30 rounded-lg border border-purple-800/30">Connecting...</span>
                 <button onclick="closeTerminal()"
-                    class="text-gray-400 hover:text-white transition p-1 hover:bg-gray-700 rounded">
+                    class="text-gray-400 hover:text-white transition p-2 hover:bg-purple-900/30 rounded-xl">
                     ✕
                 </button>
             </div>
         </div>
-        <div id="terminal-container" class="flex-1 p-2 bg-black"></div>
+        <div id="terminal-container" class="flex-1 p-2 bg-[#08080c] rounded-b-2xl"></div>
     </div>
 </dialog>
 
@@ -37,33 +39,33 @@
         nameEl.textContent = containerName;
         containerEl.innerHTML = '';
 
-        // Initialize xterm
+        // Initialize xterm with purple theme
         terminal = new Terminal({
             cursorBlink: true,
             fontSize: 14,
             fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
             theme: {
-                background: '#0d1117',
-                foreground: '#c9d1d9',
-                cursor: '#58a6ff',
-                cursorAccent: '#0d1117',
-                selection: '#264f78',
-                black: '#0d1117',
-                red: '#ff7b72',
-                green: '#7ee787',
-                yellow: '#d29922',
-                blue: '#58a6ff',
-                magenta: '#bc8cff',
-                cyan: '#39c5cf',
-                white: '#b1bac4',
-                brightBlack: '#484f58',
-                brightRed: '#ffa198',
-                brightGreen: '#7ee787',
-                brightYellow: '#e3b341',
-                brightBlue: '#79c0ff',
-                brightMagenta: '#d2a8ff',
-                brightCyan: '#56d4dd',
-                brightWhite: '#f0f6fc'
+                background: '#08080c',
+                foreground: '#e4e4e7',
+                cursor: '#a855f7',
+                cursorAccent: '#08080c',
+                selection: '#7c3aed40',
+                black: '#0a0a0f',
+                red: '#f87171',
+                green: '#4ade80',
+                yellow: '#facc15',
+                blue: '#60a5fa',
+                magenta: '#c084fc',
+                cyan: '#22d3ee',
+                white: '#e4e4e7',
+                brightBlack: '#52525b',
+                brightRed: '#fca5a5',
+                brightGreen: '#86efac',
+                brightYellow: '#fde047',
+                brightBlue: '#93c5fd',
+                brightMagenta: '#d8b4fe',
+                brightCyan: '#67e8f9',
+                brightWhite: '#fafafa'
             }
         });
 
@@ -79,13 +81,13 @@
         const wsUrl = `${wsProtocol}//${window.location.host}/ws/terminal/${hostName}/${containerId}`;
 
         statusEl.textContent = 'Connecting...';
-        statusEl.className = 'text-xs text-yellow-400';
+        statusEl.className = 'text-xs text-yellow-400 px-3 py-1 bg-yellow-900/30 rounded-lg border border-yellow-800/30';
 
         terminalSocket = new WebSocket(wsUrl);
 
         terminalSocket.onopen = function () {
             statusEl.textContent = 'Connected';
-            statusEl.className = 'text-xs text-green-400';
+            statusEl.className = 'text-xs text-green-400 px-3 py-1 bg-green-900/30 rounded-lg border border-green-800/30';
             terminal.focus();
         };
 
@@ -95,13 +97,13 @@
 
         terminalSocket.onclose = function () {
             statusEl.textContent = 'Disconnected';
-            statusEl.className = 'text-xs text-red-400';
+            statusEl.className = 'text-xs text-red-400 px-3 py-1 bg-red-900/30 rounded-lg border border-red-800/30';
             terminal.write('\r\n\x1b[31m[Connection closed]\x1b[0m\r\n');
         };
 
         terminalSocket.onerror = function () {
             statusEl.textContent = 'Error';
-            statusEl.className = 'text-xs text-red-400';
+            statusEl.className = 'text-xs text-red-400 px-3 py-1 bg-red-900/30 rounded-lg border border-red-800/30';
         };
 
         // Send keystrokes to server

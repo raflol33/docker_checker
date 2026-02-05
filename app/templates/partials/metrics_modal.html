@@ -1,45 +1,51 @@
 <!-- Metrics Modal Content -->
-<div class="p-4">
-    <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold flex items-center gap-2">
-            📊 Метрики: <span class="text-blue-400 font-mono">{{ container_id }}</span>
-            <span class="text-xs text-gray-500">@ {{ host_name }}</span>
+<div class="p-5">
+    <div class="flex justify-between items-center mb-5">
+        <h3 class="text-lg font-bold flex items-center gap-3">
+            <span class="text-purple-400">📊</span>
+            <span class="text-purple-200">Метрики:</span>
+            <span class="text-purple-400 font-mono">{{ container_id }}</span>
+            <span class="text-xs text-gray-500 px-2 py-1 bg-purple-900/30 rounded-lg">@ {{ host_name }}</span>
         </h3>
         <div class="flex gap-2">
             <button onclick="loadMetrics('1h')"
-                class="period-btn text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition"
+                class="period-btn text-xs px-3 py-1.5 rounded-lg bg-purple-900/50 hover:bg-purple-800/70 transition border border-purple-700/50 text-purple-200"
                 data-period="1h">1ч</button>
             <button onclick="loadMetrics('6h')"
-                class="period-btn text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition"
+                class="period-btn text-xs px-3 py-1.5 rounded-lg bg-purple-900/50 hover:bg-purple-800/70 transition border border-purple-700/50 text-purple-200"
                 data-period="6h">6ч</button>
-            <button onclick="loadMetrics('24h')" class="period-btn text-xs px-2 py-1 rounded bg-blue-600 transition"
+            <button onclick="loadMetrics('24h')" class="period-btn text-xs px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-violet-600 transition text-white"
                 data-period="24h">24ч</button>
             <button onclick="loadMetrics('7d')"
-                class="period-btn text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition"
+                class="period-btn text-xs px-3 py-1.5 rounded-lg bg-purple-900/50 hover:bg-purple-800/70 transition border border-purple-700/50 text-purple-200"
                 data-period="7d">7д</button>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <!-- CPU Chart -->
-        <div class="bg-gray-800 rounded-lg p-4">
-            <h4 class="text-sm font-semibold text-cyan-400 mb-2">🔥 CPU Usage</h4>
+        <div class="bg-[#12121a] rounded-xl p-5 border border-purple-900/30">
+            <h4 class="text-sm font-semibold text-violet-400 mb-3 flex items-center gap-2">
+                <span>🔥</span> CPU Usage
+            </h4>
             <div class="relative h-48">
                 <canvas id="cpuChart"></canvas>
             </div>
         </div>
 
         <!-- Memory Chart -->
-        <div class="bg-gray-800 rounded-lg p-4">
-            <h4 class="text-sm font-semibold text-purple-400 mb-2">💾 Memory Usage</h4>
+        <div class="bg-[#12121a] rounded-xl p-5 border border-purple-900/30">
+            <h4 class="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2">
+                <span>💾</span> Memory Usage
+            </h4>
             <div class="relative h-48">
                 <canvas id="memChart"></canvas>
             </div>
         </div>
     </div>
 
-    <div id="metrics-status" class="text-center text-xs text-gray-500 mt-4">
-        Загрузка данных...
+    <div id="metrics-status" class="text-center text-xs text-purple-400/50 mt-5 py-2">
+        <span class="animate-pulse">Загрузка данных...</span>
     </div>
 </div>
 
@@ -50,7 +56,11 @@
         const hostName = '{{ host_name }}';
         let cpuChart, memChart;
 
-        function createChart(ctx, label, color) {
+        function createChart(ctx, label, color, gradientColor) {
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, gradientColor + '40');
+            gradient.addColorStop(1, gradientColor + '00');
+
             return new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -59,9 +69,9 @@
                         label: label,
                         data: [],
                         borderColor: color,
-                        backgroundColor: color + '20',
+                        backgroundColor: gradient,
                         fill: true,
-                        tension: 0.3,
+                        tension: 0.4,
                         pointRadius: 0,
                         borderWidth: 2
                     }]
@@ -74,15 +84,15 @@
                     },
                     scales: {
                         x: {
-                            grid: { color: '#374151' },
-                            ticks: { color: '#9CA3AF', maxTicksLimit: 8 }
+                            grid: { color: '#1a1a2e' },
+                            ticks: { color: '#6b7280', maxTicksLimit: 8 }
                         },
                         y: {
                             min: 0,
                             max: 100,
-                            grid: { color: '#374151' },
+                            grid: { color: '#1a1a2e' },
                             ticks: {
-                                color: '#9CA3AF',
+                                color: '#6b7280',
                                 callback: function (value) { return value + '%'; }
                             }
                         }
@@ -93,13 +103,13 @@
 
         window.loadMetrics = async function (period = '24h') {
             document.querySelectorAll('.period-btn').forEach(btn => {
-                btn.classList.remove('bg-blue-600');
-                btn.classList.add('bg-gray-700');
+                btn.classList.remove('bg-gradient-to-r', 'from-purple-600', 'to-violet-600', 'text-white');
+                btn.classList.add('bg-purple-900/50', 'text-purple-200');
             });
             const activeBtn = document.querySelector(`[data-period="${period}"]`);
             if (activeBtn) {
-                activeBtn.classList.remove('bg-gray-700');
-                activeBtn.classList.add('bg-blue-600');
+                activeBtn.classList.remove('bg-purple-900/50', 'text-purple-200');
+                activeBtn.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-violet-600', 'text-white');
             }
 
             try {
@@ -107,7 +117,7 @@
                 const data = await response.json();
 
                 if (data.count === 0) {
-                    document.getElementById('metrics-status').textContent = 'Нет данных за выбранный период. Данные собираются каждые 5 секунд.';
+                    document.getElementById('metrics-status').innerHTML = '<span class="text-gray-500">Нет данных за выбранный период. Данные собираются каждые 5 секунд.</span>';
                     return;
                 }
 
@@ -119,17 +129,17 @@
                 memChart.data.datasets[0].data = data.memory;
                 memChart.update();
 
-                document.getElementById('metrics-status').textContent = `Показано ${data.count} точек данных`;
+                document.getElementById('metrics-status').innerHTML = `<span class="text-purple-400/70">Показано ${data.count} точек данных</span>`;
             } catch (e) {
                 console.error('Metrics error:', e);
-                document.getElementById('metrics-status').textContent = 'Ошибка загрузки данных';
+                document.getElementById('metrics-status').innerHTML = '<span class="text-red-400">Ошибка загрузки данных</span>';
             }
         };
 
         // Initialize charts immediately (HTMX loads this after DOM is ready)
         setTimeout(() => {
-            cpuChart = createChart(document.getElementById('cpuChart'), 'CPU %', '#06B6D4');
-            memChart = createChart(document.getElementById('memChart'), 'Memory %', '#A855F7');
+            cpuChart = createChart(document.getElementById('cpuChart'), 'CPU %', '#8b5cf6', '#8b5cf6');
+            memChart = createChart(document.getElementById('memChart'), 'Memory %', '#a855f7', '#a855f7');
             loadMetrics('24h');
         }, 100);
     })();

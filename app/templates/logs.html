@@ -1,8 +1,8 @@
-<div class="flex flex-col h-full bg-gray-800 rounded-lg shadow-xl overflow-hidden" id="logs-container">
+<div class="flex flex-col h-full bg-[#0a0a0f] rounded-2xl shadow-xl overflow-hidden" id="logs-container">
     <!-- Header with Filters -->
-    <div class="flex flex-wrap justify-between items-center p-3 bg-gray-900 border-b border-gray-700">
-        <div class="flex items-center gap-2 mb-2 sm:mb-0">
-            <span class="text-sm font-mono text-gray-400">ID: {{ container_id[:12] }}</span>
+    <div class="flex flex-wrap justify-between items-center p-4 bg-gradient-to-r from-[#12121a] to-[#16162a] border-b border-purple-900/50">
+        <div class="flex items-center gap-3 mb-2 sm:mb-0">
+            <span class="text-sm font-mono text-purple-400 px-3 py-1 bg-purple-900/30 rounded-lg">ID: {{ container_id[:12] }}</span>
         </div>
 
         <form class="flex flex-wrap items-center gap-2" hx-get="/containers/{{ host_name }}/{{ container_id }}/logs"
@@ -10,32 +10,32 @@
 
             <!-- Range/Tail Selector Input -->
             <input type="number" name="tail" value="{{ tail }}" placeholder="Строк (1000)" title="Строк"
-                class="bg-gray-800 text-gray-200 text-xs py-1 px-2 rounded border border-gray-600 focus:border-blue-500 outline-none w-20">
+                class="bg-[#12121a] text-gray-200 text-xs py-2 px-3 rounded-xl border border-purple-900/50 focus:border-purple-500 outline-none w-20">
 
             <!-- Start Time -->
             <input type="datetime-local" name="since" value="{{ since|default('', true) }}" title="Начало"
-                class="bg-gray-800 text-gray-200 text-xs py-1 px-2 rounded border border-gray-600 focus:border-blue-500 outline-none">
+                class="bg-[#12121a] text-gray-200 text-xs py-2 px-3 rounded-xl border border-purple-900/50 focus:border-purple-500 outline-none">
 
-            <span class="text-gray-500">-</span>
+            <span class="text-purple-500">→</span>
 
             <!-- End Time -->
             <input type="datetime-local" name="until" value="{{ until|default('', true) }}" title="Конец"
-                class="bg-gray-800 text-gray-200 text-xs py-1 px-2 rounded border border-gray-600 focus:border-blue-500 outline-none">
+                class="bg-[#12121a] text-gray-200 text-xs py-2 px-3 rounded-xl border border-purple-900/50 focus:border-purple-500 outline-none">
 
             <!-- Real-time Toggle -->
             <label
-                class="flex items-center space-x-2 cursor-pointer bg-gray-700 px-2 py-1 rounded hover:bg-gray-600 transition ml-2">
+                class="flex items-center space-x-2 cursor-pointer bg-purple-900/30 px-3 py-2 rounded-xl hover:bg-purple-900/50 transition ml-2 border border-purple-800/30">
                 <input type="checkbox" id="realtime-toggle"
-                    class="form-checkbox h-3 w-3 text-green-500 rounded sm:h-4 sm:w-4" onchange="toggleRealtime(this)">
-                <span class="text-xs text-gray-300 font-bold">Live</span>
+                    class="form-checkbox h-3 w-3 text-purple-500 rounded sm:h-4 sm:w-4 bg-[#1a1a2e] border-purple-700" onchange="toggleRealtime(this)">
+                <span class="text-xs text-purple-200 font-bold">Live</span>
             </label>
 
             <!-- Search -->
             <input type="text" name="search" value="{{ search|default('', true) }}" placeholder="Поиск текста..."
-                class="bg-gray-800 text-gray-200 text-xs py-1 px-2 rounded border border-gray-600 focus:border-blue-500 outline-none w-28">
+                class="bg-[#12121a] text-gray-200 text-xs py-2 px-3 rounded-xl border border-purple-900/50 focus:border-purple-500 outline-none w-28">
 
             <button type="submit"
-                class="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs transition flex items-center gap-1">
+                class="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white px-4 py-2 rounded-xl text-xs transition flex items-center gap-2 btn-glow">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -44,7 +44,7 @@
                 Найти
             </button>
             <div id="loading-spinner" class="htmx-indicator ml-2">
-                <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="animate-spin h-4 w-4 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none"
                     viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor"
@@ -57,7 +57,7 @@
         <div class="flex gap-2">
             <a href="/containers/{{ host_name }}/{{ container_id }}/logs?download=true&tail={{ tail }}&since={{ since|default('', true) }}&until={{ until|default('', true) }}&search={{ search|default('', true) }}"
                 target="_blank" download="logs.txt"
-                class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-1 rounded text-xs flex items-center gap-1">
+                class="bg-purple-900/50 hover:bg-purple-800/70 text-purple-200 px-4 py-2 rounded-xl text-xs flex items-center gap-2 border border-purple-700/50 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -66,7 +66,7 @@
                 Скачать
             </a>
             <button onclick="document.getElementById('log-modal').close()"
-                class="text-gray-400 hover:text-white transition">
+                class="text-gray-400 hover:text-white transition p-2 hover:bg-purple-900/30 rounded-xl">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -77,14 +77,14 @@
 
     <!-- Static Logs View -->
     <div id="log-content-static"
-        class="bg-black p-4 overflow-auto flex-1 font-mono text-xs text-gray-300 leading-relaxed whitespace-pre-wrap break-all h-full custom-scrollbar">
+        class="bg-[#08080c] p-4 overflow-auto flex-1 font-mono text-xs text-gray-300 leading-relaxed whitespace-pre-wrap break-all h-full custom-scrollbar">
         {{ logs }}
     </div>
 
     <!-- Live Logs View (Hidden by default) -->
     <div id="log-content-live"
-        class="bg-[#0c0c0c] p-4 overflow-auto flex-1 font-mono text-xs text-green-400 leading-relaxed whitespace-pre-wrap break-all h-full custom-scrollbar hidden border-t-2 border-green-900/30">
-        <div class="text-center text-gray-500 my-4 select-none">--- Ожидание подключения к Live Stream ---</div>
+        class="bg-[#08080c] p-4 overflow-auto flex-1 font-mono text-xs text-purple-300 leading-relaxed whitespace-pre-wrap break-all h-full custom-scrollbar hidden border-t-2 border-purple-900/30">
+        <div class="text-center text-purple-500 my-4 select-none animate-pulse">--- Ожидание подключения к Live Stream ---</div>
     </div>
 
     <script>
@@ -118,7 +118,7 @@
             var tailInput = document.querySelector('input[name="tail"]');
             var tailValue = tailInput ? tailInput.value : "100";
 
-            liveView.innerHTML = '<div class="text-gray-500 mb-2">--- Подключение... ---</div>';
+            liveView.innerHTML = '<div class="text-purple-500 mb-2 animate-pulse">--- Подключение... ---</div>';
 
             var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             var url = `${protocol}//${window.location.host}/ws/logs/${hostName}/${containerId}?tail=${tailValue}`;
@@ -126,7 +126,7 @@
             ws = new WebSocket(url);
 
             ws.onopen = function () {
-                liveView.innerHTML = '<div class="text-green-500 font-bold mb-2">--- Live Stream Connected ---</div>';
+                liveView.innerHTML = '<div class="text-green-400 font-bold mb-2">--- Live Stream Connected ---</div>';
             };
 
             ws.onmessage = function (event) {
@@ -142,7 +142,7 @@
 
             ws.onclose = function () {
                 var marker = document.createElement('div');
-                marker.className = "text-red-500 font-bold my-2";
+                marker.className = "text-red-400 font-bold my-2";
                 marker.textContent = "--- Live Stream Closed ---";
                 liveView.appendChild(marker);
                 ws = null;
@@ -151,7 +151,7 @@
             ws.onerror = function (err) {
                 console.error("WS Error", err);
                 var marker = document.createElement('div');
-                marker.className = "text-red-500 font-bold my-2";
+                marker.className = "text-red-400 font-bold my-2";
                 marker.textContent = "--- Connection Error (Check Logs) ---";
                 liveView.appendChild(marker);
             }

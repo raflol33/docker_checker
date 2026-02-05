@@ -1,50 +1,52 @@
 <!-- Volumes Modal Content -->
-<div class="p-4">
-    <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold flex items-center gap-2">
-            💾 Volumes on <span class="text-blue-400">{{ host_name }}</span>
+<div class="p-5">
+    <div class="flex justify-between items-center mb-5">
+        <h3 class="text-lg font-bold flex items-center gap-3">
+            <span class="text-purple-400">💾</span>
+            <span class="text-purple-200">Volumes on</span>
+            <span class="text-purple-400 font-mono">{{ host_name }}</span>
         </h3>
         <button hx-post="/volumes/{{ host_name }}/prune" hx-swap="none"
             hx-confirm="Remove all unused volumes? This cannot be undone!"
-            class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-3 py-1 rounded text-sm border border-red-600/50 transition">
-            🧹 Prune Unused
+            class="bg-red-900/40 hover:bg-red-800/60 text-red-300 px-4 py-2 rounded-xl text-sm border border-red-700/50 transition flex items-center gap-2">
+            <span>🧹</span> Prune Unused
         </button>
     </div>
 
     {% if volumes %}
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
-            <thead class="text-xs text-gray-400 uppercase bg-gray-700/50">
+            <thead class="text-xs text-purple-300/70 uppercase bg-[#12121a]/80">
                 <tr>
-                    <th class="px-3 py-2 text-left">Name</th>
-                    <th class="px-3 py-2 text-left">Driver</th>
-                    <th class="px-3 py-2 text-left">Mountpoint</th>
-                    <th class="px-3 py-2 text-left">Created</th>
+                    <th class="px-4 py-3 text-left">Name</th>
+                    <th class="px-4 py-3 text-left">Driver</th>
+                    <th class="px-4 py-3 text-left">Mountpoint</th>
+                    <th class="px-4 py-3 text-left">Created</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-700">
+            <tbody class="divide-y divide-purple-900/20">
                 {% for vol in volumes %}
-                <tr class="hover:bg-gray-700/30 transition">
-                    <td class="px-3 py-2 font-semibold text-white truncate max-w-[200px]" title="{{ vol.name }}">
+                <tr class="hover:bg-purple-900/10 transition">
+                    <td class="px-4 py-3 font-semibold text-white truncate max-w-[200px]" title="{{ vol.name }}">
                         {{ vol.name[:40] }}{% if vol.name|length > 40 %}...{% endif %}
                     </td>
-                    <td class="px-3 py-2">
-                        <span class="px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded text-xs">{{ vol.driver
-                            }}</span>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 bg-purple-900/40 text-purple-300 rounded-lg text-xs border border-purple-700/50">{{ vol.driver }}</span>
                     </td>
-                    <td class="px-3 py-2 text-xs text-gray-400 font-mono truncate max-w-[300px]"
+                    <td class="px-4 py-3 text-xs text-gray-400 font-mono truncate max-w-[300px]"
                         title="{{ vol.mountpoint }}">
                         {{ vol.mountpoint[:50] }}{% if vol.mountpoint|length > 50 %}...{% endif %}
                     </td>
-                    <td class="px-3 py-2 text-xs text-gray-500">{{ vol.created }}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500">{{ vol.created }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <div class="text-center text-gray-500 py-8">
-        No volumes found
+    <div class="text-center text-gray-500 py-12">
+        <span class="text-4xl">📭</span>
+        <p class="mt-3 text-purple-300/50">No volumes found</p>
     </div>
     {% endif %}
 </div>

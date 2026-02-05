@@ -1,41 +1,43 @@
 <!-- Networks Modal Content -->
-<div class="p-4">
-    <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold flex items-center gap-2">
-            🌐 Networks on <span class="text-blue-400">{{ host_name }}</span>
+<div class="p-5">
+    <div class="flex justify-between items-center mb-5">
+        <h3 class="text-lg font-bold flex items-center gap-3">
+            <span class="text-purple-400">🌐</span>
+            <span class="text-purple-200">Networks on</span>
+            <span class="text-purple-400 font-mono">{{ host_name }}</span>
         </h3>
         <button hx-post="/networks/{{ host_name }}/prune" hx-swap="none" hx-confirm="Remove all unused networks?"
-            class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-3 py-1 rounded text-sm border border-red-600/50 transition">
-            🧹 Prune Unused
+            class="bg-red-900/40 hover:bg-red-800/60 text-red-300 px-4 py-2 rounded-xl text-sm border border-red-700/50 transition flex items-center gap-2">
+            <span>🧹</span> Prune Unused
         </button>
     </div>
 
     {% if networks %}
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
-            <thead class="text-xs text-gray-400 uppercase bg-gray-700/50">
+            <thead class="text-xs text-purple-300/70 uppercase bg-[#12121a]/80">
                 <tr>
-                    <th class="px-3 py-2 text-left">Network ID</th>
-                    <th class="px-3 py-2 text-left">Name</th>
-                    <th class="px-3 py-2 text-left">Driver</th>
-                    <th class="px-3 py-2 text-left">Scope</th>
-                    <th class="px-3 py-2 text-right">Containers</th>
+                    <th class="px-4 py-3 text-left">Network ID</th>
+                    <th class="px-4 py-3 text-left">Name</th>
+                    <th class="px-4 py-3 text-left">Driver</th>
+                    <th class="px-4 py-3 text-left">Scope</th>
+                    <th class="px-4 py-3 text-right">Containers</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-700">
+            <tbody class="divide-y divide-purple-900/20">
                 {% for net in networks %}
-                <tr class="hover:bg-gray-700/30 transition">
-                    <td class="px-3 py-2 font-mono text-xs text-gray-400">{{ net.id }}</td>
-                    <td class="px-3 py-2 font-semibold text-white">{{ net.name }}</td>
-                    <td class="px-3 py-2">
-                        <span class="px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded text-xs">{{ net.driver }}</span>
+                <tr class="hover:bg-purple-900/10 transition">
+                    <td class="px-4 py-3 font-mono text-xs text-purple-400/60">{{ net.id }}</td>
+                    <td class="px-4 py-3 font-semibold text-white">{{ net.name }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 bg-purple-900/40 text-purple-300 rounded-lg text-xs border border-purple-700/50">{{ net.driver }}</span>
                     </td>
-                    <td class="px-3 py-2 text-gray-400">{{ net.scope }}</td>
-                    <td class="px-3 py-2 text-right">
+                    <td class="px-4 py-3 text-gray-400">{{ net.scope }}</td>
+                    <td class="px-4 py-3 text-right">
                         {% if net.containers > 0 %}
-                        <span class="text-green-400">{{ net.containers }}</span>
+                        <span class="text-green-400 font-mono px-2 py-1 bg-green-900/20 rounded-lg border border-green-700/30">{{ net.containers }}</span>
                         {% else %}
-                        <span class="text-gray-500">0</span>
+                        <span class="text-gray-500 font-mono">0</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -44,8 +46,9 @@
         </table>
     </div>
     {% else %}
-    <div class="text-center text-gray-500 py-8">
-        No networks found
+    <div class="text-center text-gray-500 py-12">
+        <span class="text-4xl">📭</span>
+        <p class="mt-3 text-purple-300/50">No networks found</p>
     </div>
     {% endif %}
 </div>

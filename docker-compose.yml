@@ -1,5 +1,6 @@
 services:
   docker-manager:
+    build: .
     image: docker-manager:latest
     container_name: docker-manager
     restart: unless-stopped

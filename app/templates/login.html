@@ -2,33 +2,63 @@
 
 {% block content %}
 <div class="flex justify-center items-center h-[80vh]">
-    <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md border border-gray-700">
-        <h2 class="text-2xl font-bold mb-6 text-center">Вход</h2>
+    <div class="gradient-border p-8 rounded-2xl shadow-2xl w-full max-w-md glow-purple">
+        <div class="text-center mb-8">
+            <div class="text-5xl mb-4">🐳</div>
+            <h2 class="text-2xl font-bold bg-gradient-to-r from-purple-300 via-violet-300 to-purple-400 bg-clip-text text-transparent">
+                Добро пожаловать
+            </h2>
+            <p class="text-gray-500 text-sm mt-2">Войдите в Docker Менеджер</p>
+        </div>
 
         {% if error %}
-        <div class="bg-red-900/50 text-red-200 p-3 rounded mb-4 text-sm border border-red-800">
-            {{ error }}
+        <div class="bg-red-900/30 text-red-200 p-4 rounded-xl mb-6 text-sm border border-red-700/50 flex items-center gap-3">
+            <span class="text-xl">⚠️</span>
+            <span>{{ error }}</span>
         </div>
         {% endif %}
 
-        <form action="/login" method="post" class="space-y-4">
+        <form action="/login" method="post" class="space-y-5">
             <div>
-                <label class="block text-sm font-medium mb-1">Имя пользователя</label>
-                <input type="text" name="username"
-                    class="w-full bg-gray-700 border border-gray-600 rounded p-2 focus:outline-none focus:border-blue-500"
-                    required>
+                <label class="block text-sm font-medium mb-2 text-purple-200/70">Имя пользователя</label>
+                <div class="relative">
+                    <input type="text" name="username"
+                        class="w-full bg-[#12121a] border border-purple-900/50 rounded-xl p-4 pl-12 focus:outline-none focus:border-purple-500 transition text-white placeholder-gray-500"
+                        placeholder="Введите имя пользователя"
+                        required>
+                    <span class="absolute left-4 top-4 text-purple-400/50">👤</span>
+                </div>
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">Пароль</label>
-                <input type="password" name="password"
-                    class="w-full bg-gray-700 border border-gray-600 rounded p-2 focus:outline-none focus:border-blue-500"
-                    required>
+                <label class="block text-sm font-medium mb-2 text-purple-200/70">Пароль</label>
+                <div class="relative">
+                    <input type="password" name="password"
+                        class="w-full bg-[#12121a] border border-purple-900/50 rounded-xl p-4 pl-12 focus:outline-none focus:border-purple-500 transition text-white placeholder-gray-500"
+                        placeholder="Введите пароль"
+                        required>
+                    <span class="absolute left-4 top-4 text-purple-400/50">🔒</span>
+                </div>
             </div>
             <button type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition">
-                Войти
+                class="w-full bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 hover:from-purple-500 hover:via-violet-500 hover:to-purple-600 text-white font-bold py-4 px-4 rounded-xl transition btn-glow shadow-lg shadow-purple-900/30">
+                <span class="flex items-center justify-center gap-2">
+                    <span>Войти</span>
+                    <span>→</span>
+                </span>
             </button>
         </form>
+
+        <div class="mt-8 pt-6 border-t border-purple-900/30 text-center">
+            <p class="text-gray-500 text-xs">
+                Защищённый вход в систему управления Docker
+            </p>
+        </div>
     </div>
+</div>
+
+<!-- Decorative background elements -->
+<div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/5 rounded-full blur-3xl"></div>
 </div>
 {% endblock %}

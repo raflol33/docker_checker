@@ -1,73 +1,73 @@
 <!-- Host Details Modal Partial -->
-<dialog id="host-details-modal" class="bg-transparent p-0 w-[95%] max-w-lg backdrop:bg-black/80">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl">
-        <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800 rounded-t-lg">
-            <h3 class="font-bold flex items-center gap-2">
-                <span>⚙️</span> Настройки Хоста
+<dialog id="host-details-modal" class="bg-transparent p-0 w-[95%] max-w-lg">
+    <div class="bg-[#0a0a0f] border border-purple-800/50 rounded-2xl shadow-2xl glow-purple">
+        <div class="p-4 border-b border-purple-900/50 flex justify-between items-center bg-gradient-to-r from-[#12121a] to-[#16162a] rounded-t-2xl">
+            <h3 class="font-bold flex items-center gap-3 text-purple-200">
+                <span class="text-xl">⚙️</span> Настройки Хоста
             </h3>
             <button onclick="document.getElementById('host-details-modal').close()"
-                class="text-gray-400 hover:text-white transition">
+                class="text-gray-400 hover:text-white transition p-2 hover:bg-purple-900/30 rounded-xl">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
-        <div class="p-6 space-y-4">
+        <div class="p-6 space-y-5">
             <div class="grid grid-cols-2 gap-4 text-sm">
-                <div class="text-gray-400">Имя:</div>
+                <div class="text-gray-500">Имя:</div>
                 <div class="font-mono font-bold text-white">{{ host.name }}</div>
                 
-                <div class="text-gray-400">Тип подключения:</div>
+                <div class="text-gray-500">Тип подключения:</div>
                 <div>
                     {% if host.type == 'local' %}
-                    <span class="px-2 py-1 bg-green-900/50 text-green-300 rounded text-xs">Локальный Сокет</span>
+                    <span class="px-3 py-1.5 bg-green-900/30 text-green-300 rounded-lg text-xs border border-green-700/50">Локальный Сокет</span>
                     {% else %}
-                    <span class="px-2 py-1 bg-blue-900/50 text-blue-300 rounded text-xs">SSH</span>
+                    <span class="px-3 py-1.5 bg-purple-900/30 text-purple-300 rounded-lg text-xs border border-purple-700/50">SSH</span>
                     {% endif %}
                 </div>
                 
                 {% if host.type == 'ssh' %}
-                <div class="text-gray-400">IP Адрес:</div>
-                <div class="font-mono">{{ host.ip or '—' }}</div>
+                <div class="text-gray-500">IP Адрес:</div>
+                <div class="font-mono text-purple-300">{{ host.ip or '—' }}</div>
                 
-                <div class="text-gray-400">Порт:</div>
-                <div class="font-mono">{{ host.port or 22 }}</div>
+                <div class="text-gray-500">Порт:</div>
+                <div class="font-mono text-purple-300">{{ host.port or 22 }}</div>
                 
-                <div class="text-gray-400">SSH Пользователь:</div>
-                <div class="font-mono">{{ host.ssh_user or '—' }}</div>
+                <div class="text-gray-500">SSH Пользователь:</div>
+                <div class="font-mono text-purple-300">{{ host.ssh_user or '—' }}</div>
                 
-                <div class="text-gray-400">Аутентификация:</div>
+                <div class="text-gray-500">Аутентификация:</div>
                 <div>
                     {% if host.ssh_password %}
-                    <span class="text-yellow-400">Пароль</span>
+                    <span class="text-yellow-400 flex items-center gap-1"><span>🔑</span> Пароль</span>
                     {% elif host.ssh_key_path %}
-                    <span class="text-green-400">SSH Ключ</span>
+                    <span class="text-green-400 flex items-center gap-1"><span>🔐</span> SSH Ключ</span>
                     {% else %}
                     <span class="text-gray-500">—</span>
                     {% endif %}
                 </div>
                 {% endif %}
                 
-                <div class="text-gray-400">Среда:</div>
+                <div class="text-gray-500">Среда:</div>
                 <div>
                     {% if host.environment %}
-                    <span class="px-2 py-1 bg-purple-900/50 text-purple-300 rounded text-xs">{{ host.environment.name }}</span>
+                    <span class="px-3 py-1.5 bg-purple-900/30 text-purple-300 rounded-lg text-xs border border-purple-700/50">{{ host.environment.name }}</span>
                     {% else %}
                     <span class="text-gray-500">Без среды</span>
                     {% endif %}
                 </div>
             </div>
             
-            <div class="pt-4 border-t border-gray-700 flex gap-2 justify-end">
+            <div class="pt-5 border-t border-purple-900/30 flex gap-3 justify-end">
                 <form action="/hosts/{{ host.id }}/delete" method="post" 
                       onsubmit="return confirm('Удалить хост {{ host.name }}?')">
                     <button type="submit" 
-                            class="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded text-sm transition">
-                        🗑️ Удалить хост
+                            class="px-4 py-2.5 bg-red-900/50 hover:bg-red-800/70 text-red-200 rounded-xl text-sm transition border border-red-700/50 flex items-center gap-2">
+                        <span>🗑️</span> Удалить хост
                     </button>
                 </form>
                 <button onclick="document.getElementById('host-details-modal').close()"
-                        class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition">
+                        class="px-4 py-2.5 bg-purple-900/50 hover:bg-purple-800/70 text-purple-200 rounded-xl text-sm transition border border-purple-700/50">
                     Закрыть
                 </button>
             </div>

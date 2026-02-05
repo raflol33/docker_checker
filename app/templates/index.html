@@ -4,13 +4,14 @@
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
     <!-- Sidebar / Hosts -->
     <div class="lg:col-span-1 space-y-6">
-        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <div class="gradient-border p-4 rounded-xl glow-purple-sm">
             <h2 class="text-lg font-bold mb-4 flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
-                    <span>🖥️</span> Управляемые Хосты
+                    <span class="text-purple-400">🖥️</span>
+                    <span class="bg-gradient-to-r from-purple-300 to-violet-300 bg-clip-text text-transparent">Управляемые Хосты</span>
                 </div>
                 <button hx-get="/containers/list" hx-target="#container-list"
-                    class="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition text-gray-300">
+                    class="text-xs bg-purple-900/50 hover:bg-purple-800/70 px-3 py-1.5 rounded-lg transition text-purple-200 border border-purple-700/50 btn-glow">
                     Все
                 </button>
             </h2>
@@ -19,26 +20,26 @@
             <div class="mb-4">
                 <div class="relative">
                     <input type="text" id="host-search" placeholder="Поиск: @hostname или часть имени..."
-                        class="w-full bg-gray-700 rounded-lg p-2 pl-8 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none transition"
+                        class="w-full bg-[#12121a] rounded-xl p-3 pl-10 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none transition placeholder-gray-500"
                         oninput="filterHosts(this.value)">
-                    <span class="absolute left-2.5 top-2.5 text-gray-400">🔍</span>
+                    <span class="absolute left-3 top-3 text-purple-400">🔍</span>
                 </div>
             </div>
 
             <!-- Environments -->
             <div id="hosts-container" class="space-y-3 mb-4">
                 {% for env in environments %}
-                <details class="bg-gray-700/30 rounded-lg overflow-hidden" open>
+                <details class="bg-[#12121a]/80 rounded-xl overflow-hidden border border-purple-900/20" open>
                     <summary
-                        class="cursor-pointer px-3 py-2 bg-gradient-to-r from-purple-900/50 to-gray-800 hover:from-purple-800/50 transition flex justify-between items-center">
+                        class="cursor-pointer px-4 py-3 bg-gradient-to-r from-purple-900/40 to-[#12121a] hover:from-purple-800/50 transition flex justify-between items-center">
                         <div class="flex items-center gap-2">
                             <span class="text-purple-400">📁</span>
                             <span class="font-bold text-purple-200">{{ env.name }}</span>
-                            <span class="text-xs text-gray-400">({{ env.hosts|length }})</span>
+                            <span class="text-xs text-purple-400/60 bg-purple-900/30 px-2 py-0.5 rounded-full">({{ env.hosts|length }})</span>
                         </div>
                         <form action="/environments/{{ env.id }}/delete" method="post" class="inline"
                             onsubmit="event.stopPropagation(); return confirm('Удалить среду {{ env.name }}? Хосты будут перемещены в Без среды.')">
-                            <button type="submit" class="text-xs text-red-400 hover:text-red-300 px-1"
+                            <button type="submit" class="text-xs text-red-400 hover:text-red-300 px-2 py-1 hover:bg-red-900/30 rounded-lg"
                                 onclick="event.stopPropagation()">
                                 ✕
                             </button>
@@ -46,45 +47,43 @@
                     </summary>
                     <ul class="p-2 space-y-1">
                         {% for host in env.hosts %}
-                        <li class="host-item flex justify-between items-center bg-gray-700/50 p-2 rounded text-sm hover:bg-gray-700 transition group cursor-pointer"
+                        <li class="host-item flex justify-between items-center bg-[#1a1a2e]/50 p-3 rounded-xl text-sm hover:bg-purple-900/20 transition group cursor-pointer border border-transparent hover:border-purple-800/30"
                             data-host-name="{{ host.name|lower }}" hx-get="/containers/list?host_name={{ host.name }}"
                             hx-target="#container-list">
-                            <span class="font-mono group-hover:text-blue-300 font-bold transition">{{ host.name
-                                }}</span>
+                            <span class="font-mono group-hover:text-purple-300 font-bold transition">{{ host.name }}</span>
                             <div class="flex items-center gap-1">
                                 <button
-                                    class="text-xs bg-gray-600/50 hover:bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded transition"
+                                    class="text-xs bg-[#1a1a2e] hover:bg-purple-900/50 text-gray-300 px-2 py-1 rounded-lg transition border border-purple-900/30"
                                     hx-get="/hosts/{{ host.id }}/details" hx-target="body" hx-swap="beforeend"
                                     onclick="event.stopPropagation()" title="Настройки">
                                     ⚙️
                                 </button>
                                 <button
-                                    class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-1.5 py-0.5 rounded border border-purple-700 transition"
+                                    class="text-xs bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 px-2 py-1 rounded-lg border border-purple-700/50 transition"
                                     hx-get="/images/{{ host.name }}" hx-target="body" hx-swap="beforeend"
                                     onclick="event.stopPropagation()" title="Образы">
                                     📦
                                 </button>
                                 <button
-                                    class="text-xs bg-cyan-900/50 hover:bg-cyan-800 text-cyan-200 px-1.5 py-0.5 rounded border border-cyan-700 transition"
+                                    class="text-xs bg-violet-900/40 hover:bg-violet-800/60 text-violet-200 px-2 py-1 rounded-lg border border-violet-700/50 transition"
                                     hx-get="/networks/{{ host.name }}" hx-target="#nv-modal-content"
                                     onclick="event.stopPropagation(); document.getElementById('nv-modal').showModal()"
                                     title="Networks">
                                     🌐
                                 </button>
                                 <button
-                                    class="text-xs bg-pink-900/50 hover:bg-pink-800 text-pink-200 px-1.5 py-0.5 rounded border border-pink-700 transition"
+                                    class="text-xs bg-fuchsia-900/40 hover:bg-fuchsia-800/60 text-fuchsia-200 px-2 py-1 rounded-lg border border-fuchsia-700/50 transition"
                                     hx-get="/volumes/{{ host.name }}" hx-target="#nv-modal-content"
                                     onclick="event.stopPropagation(); document.getElementById('nv-modal').showModal()"
                                     title="Volumes">
                                     💾
                                 </button>
-                                <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{
+                                <span class="text-xs text-purple-400/70 uppercase border border-purple-800/40 px-2 py-0.5 rounded-lg bg-purple-900/20">{{
                                     host.type }}</span>
-
                             </div>
                         </li>
                         {% else %}
-                        <li class="text-xs text-gray-500 italic px-2">Нет хостов</li>
+                        <li class="text-xs text-gray-500 italic px-3 py-2">Нет хостов</li>
                         {% endfor %}
                     </ul>
                 </details>
@@ -92,52 +91,50 @@
 
                 <!-- Ungrouped Hosts -->
                 {% if ungrouped_hosts %}
-                <details class="bg-gray-700/30 rounded-lg overflow-hidden">
+                <details class="bg-[#12121a]/80 rounded-xl overflow-hidden border border-purple-900/20">
                     <summary
-                        class="cursor-pointer px-3 py-2 bg-gray-700/50 hover:bg-gray-700 transition flex justify-between items-center">
+                        class="cursor-pointer px-4 py-3 bg-[#1a1a2e]/50 hover:bg-[#1a1a2e] transition flex justify-between items-center">
                         <div class="flex items-center gap-2">
-                            <span class="text-gray-400">📂</span>
+                            <span class="text-gray-500">📂</span>
                             <span class="font-bold text-gray-400">Без среды</span>
-                            <span class="text-xs text-gray-500">({{ ungrouped_hosts|length }})</span>
+                            <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-0.5 rounded-full">({{ ungrouped_hosts|length }})</span>
                         </div>
                     </summary>
                     <ul class="p-2 space-y-1">
                         {% for host in ungrouped_hosts %}
-                        <li class="host-item flex justify-between items-center bg-gray-700/50 p-2 rounded text-sm hover:bg-gray-700 transition group cursor-pointer"
+                        <li class="host-item flex justify-between items-center bg-[#1a1a2e]/50 p-3 rounded-xl text-sm hover:bg-purple-900/20 transition group cursor-pointer border border-transparent hover:border-purple-800/30"
                             data-host-name="{{ host.name|lower }}" hx-get="/containers/list?host_name={{ host.name }}"
                             hx-target="#container-list">
-                            <span class="font-mono group-hover:text-blue-300 font-bold transition">{{ host.name
-                                }}</span>
+                            <span class="font-mono group-hover:text-purple-300 font-bold transition">{{ host.name }}</span>
                             <div class="flex items-center gap-1">
                                 <button
-                                    class="text-xs bg-gray-600/50 hover:bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded transition"
+                                    class="text-xs bg-[#1a1a2e] hover:bg-purple-900/50 text-gray-300 px-2 py-1 rounded-lg transition border border-purple-900/30"
                                     hx-get="/hosts/{{ host.id }}/details" hx-target="body" hx-swap="beforeend"
                                     onclick="event.stopPropagation()" title="Настройки">
                                     ⚙️
                                 </button>
                                 <button
-                                    class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-1.5 py-0.5 rounded border border-purple-700 transition"
+                                    class="text-xs bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 px-2 py-1 rounded-lg border border-purple-700/50 transition"
                                     hx-get="/images/{{ host.name }}" hx-target="body" hx-swap="beforeend"
                                     onclick="event.stopPropagation()" title="Образы">
                                     📦
                                 </button>
                                 <button
-                                    class="text-xs bg-cyan-900/50 hover:bg-cyan-800 text-cyan-200 px-1.5 py-0.5 rounded border border-cyan-700 transition"
+                                    class="text-xs bg-violet-900/40 hover:bg-violet-800/60 text-violet-200 px-2 py-1 rounded-lg border border-violet-700/50 transition"
                                     hx-get="/networks/{{ host.name }}" hx-target="#nv-modal-content"
                                     onclick="event.stopPropagation(); document.getElementById('nv-modal').showModal()"
                                     title="Networks">
                                     🌐
                                 </button>
                                 <button
-                                    class="text-xs bg-pink-900/50 hover:bg-pink-800 text-pink-200 px-1.5 py-0.5 rounded border border-pink-700 transition"
+                                    class="text-xs bg-fuchsia-900/40 hover:bg-fuchsia-800/60 text-fuchsia-200 px-2 py-1 rounded-lg border border-fuchsia-700/50 transition"
                                     hx-get="/volumes/{{ host.name }}" hx-target="#nv-modal-content"
                                     onclick="event.stopPropagation(); document.getElementById('nv-modal').showModal()"
                                     title="Volumes">
                                     💾
                                 </button>
-                                <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{
+                                <span class="text-xs text-purple-400/70 uppercase border border-purple-800/40 px-2 py-0.5 rounded-lg bg-purple-900/20">{{
                                     host.type }}</span>
-
                             </div>
                         </li>
                         {% endfor %}
@@ -148,52 +145,56 @@
 
             <!-- Add Environment -->
             <details class="text-sm mb-3">
-                <summary class="cursor-pointer text-purple-400 hover:text-purple-300">➕ Создать Среду</summary>
-                <form action="/environments/add" method="post" class="mt-3 space-y-2 p-2 bg-gray-700/30 rounded">
+                <summary class="cursor-pointer text-purple-400 hover:text-purple-300 flex items-center gap-2 py-2">
+                    <span>➕</span> Создать Среду
+                </summary>
+                <form action="/environments/add" method="post" class="mt-3 space-y-3 p-4 bg-[#12121a] rounded-xl border border-purple-900/30">
                     <input type="text" name="name" placeholder="Название среды (test1, production...)"
-                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
-                    <button class="w-full bg-purple-700 hover:bg-purple-600 text-white p-2 rounded text-xs">Создать
-                        Среду</button>
+                        class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none" required>
+                    <button class="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white p-3 rounded-xl text-sm font-semibold btn-glow transition">
+                        Создать Среду
+                    </button>
                 </form>
             </details>
 
             <!-- Add Host -->
             <details class="text-sm">
-                <summary class="cursor-pointer text-blue-400 hover:text-blue-300">➕ Добавить Хост</summary>
-                <form action="/hosts/add" method="post" class="mt-3 space-y-2 p-2 bg-gray-700/30 rounded">
+                <summary class="cursor-pointer text-violet-400 hover:text-violet-300 flex items-center gap-2 py-2">
+                    <span>➕</span> Добавить Хост
+                </summary>
+                <form action="/hosts/add" method="post" class="mt-3 space-y-3 p-4 bg-[#12121a] rounded-xl border border-purple-900/30">
                     <input type="text" name="name" placeholder="Имя Хоста"
-                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600" required>
-                    <select name="environment_id" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                        class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none" required>
+                    <select name="environment_id" class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none">
                         <option value="">— Без среды —</option>
                         {% for env in environments %}
                         <option value="{{ env.id }}">{{ env.name }}</option>
                         {% endfor %}
                     </select>
-                    <select name="type" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                    <select name="type" class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none">
                         <option value="ssh">SSH</option>
                         <option value="local">Локальный Сокет</option>
                     </select>
                     <input type="text" name="ip" placeholder="IP Адрес (SSH)"
-                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                        class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none">
                     <input type="number" name="port" placeholder="Порт (22)"
-                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                        class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none">
                     <input type="text" name="ssh_user" placeholder="Пользователь SSH"
-                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
-                    <select name="ssh_key_id" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                        class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none">
+                    <select name="ssh_key_id" class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none">
                         <option value="">— SSH Ключ (не выбран) —</option>
                         {% for key in ssh_keys %}
                         <option value="{{ key.id }}">🔑 {{ key.name }}</option>
                         {% endfor %}
                     </select>
                     <input type="password" name="ssh_key_password" placeholder="Пароль от ключа (для расшифровки)"
-                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                        class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none">
                     <input type="text" name="ssh_password" placeholder="Или Пароль SSH"
-                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
-                    <button class="w-full bg-green-700 hover:bg-green-600 text-white p-2 rounded text-xs">Добавить
-                        Хост</button>
+                        class="w-full bg-[#1a1a2e] rounded-xl p-3 text-sm border border-purple-900/30 focus:border-purple-500 focus:outline-none">
+                    <button class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white p-3 rounded-xl text-sm font-semibold transition">
+                        Добавить Хост
+                    </button>
                 </form>
-
-
             </details>
         </div>
     </div>
@@ -201,9 +202,9 @@
     <!-- Main Content / Containers -->
     <div class="lg:col-span-3 space-y-6">
         {% if errors %}
-        <div class="bg-red-900/50 border border-red-800 p-4 rounded text-sm text-red-200">
-            <p class="font-bold">Обнаружены ошибки:</p>
-            <ul class="list-disc pl-5">
+        <div class="bg-red-900/30 border border-red-700/50 p-4 rounded-xl text-sm text-red-200 glow-purple-sm">
+            <p class="font-bold flex items-center gap-2"><span>⚠️</span> Обнаружены ошибки:</p>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
                 {% for err in errors %}
                 <li>{{ err }}</li>
                 {% endfor %}
@@ -211,33 +212,36 @@
         </div>
         {% endif %}
 
-        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-            <div class="p-4 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
-                <h2 class="text-xl font-bold flex items-center gap-2">
-                    📦 Контейнеры
-                    <span id="ws-status" class="w-2 h-2 rounded-full bg-red-500 transition"
+        <div class="gradient-border rounded-xl overflow-hidden glow-purple">
+            <div class="p-4 bg-gradient-to-r from-[#16162a] to-[#1a1a2e] border-b border-purple-900/30 flex justify-between items-center">
+                <h2 class="text-xl font-bold flex items-center gap-3">
+                    <span class="text-purple-400">📦</span>
+                    <span class="bg-gradient-to-r from-purple-200 to-violet-200 bg-clip-text text-transparent">Контейнеры</span>
+                    <span id="ws-status" class="w-3 h-3 rounded-full bg-red-500 transition shadow-lg"
                         title="Realtime статус"></span>
                 </h2>
                 <button onclick="location.reload()"
-                    class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm">Обновить</button>
+                    class="bg-purple-900/50 hover:bg-purple-800/70 px-4 py-2 rounded-xl text-sm border border-purple-700/50 transition btn-glow text-purple-200">
+                    🔄 Обновить
+                </button>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
-                    <thead class="text-xs text-gray-400 uppercase bg-gray-700/50">
+                    <thead class="text-xs text-purple-300/70 uppercase bg-[#12121a]/80">
                         <tr>
-                            <th class="px-4 py-3">Статус</th>
-                            <th class="px-4 py-3">Имя</th>
-                            <th class="px-4 py-3">Образ</th>
-                            <th class="px-4 py-3">Создан</th>
-                            <th class="px-4 py-3">Порты</th>
-                            <th class="px-4 py-3">Resources</th>
-                            <th class="px-4 py-3">Хост</th>
-                            <th class="px-4 py-3 text-right">Действия</th>
+                            <th class="px-4 py-4">Статус</th>
+                            <th class="px-4 py-4">Имя</th>
+                            <th class="px-4 py-4">Образ</th>
+                            <th class="px-4 py-4">Создан</th>
+                            <th class="px-4 py-4">Порты</th>
+                            <th class="px-4 py-4">Resources</th>
+                            <th class="px-4 py-4">Хост</th>
+                            <th class="px-4 py-4 text-right">Действия</th>
                         </tr>
                     </thead>
 
-                    <tbody id="container-list" class="divide-y divide-gray-700">
+                    <tbody id="container-list" class="divide-y divide-purple-900/20">
                         {% include "partials/container_rows.html" %}
                     </tbody>
                 </table>
@@ -247,11 +251,11 @@
 </div>
 
 <!-- Modal for Logs -->
-<dialog id="log-modal" class="bg-transparent p-0 w-[95%] max-w-7xl backdrop:bg-black/90 h-[90vh]">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl flex flex-col h-full">
-        <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800 rounded-t-lg">
-            <h3 class="font-bold flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24"
+<dialog id="log-modal" class="bg-transparent p-0 w-[95%] max-w-7xl h-[90vh]">
+    <div class="bg-[#0a0a0f] border border-purple-800/50 rounded-2xl shadow-2xl flex flex-col h-full glow-purple">
+        <div class="p-4 border-b border-purple-900/50 flex justify-between items-center bg-gradient-to-r from-[#12121a] to-[#16162a] rounded-t-2xl">
+            <h3 class="font-bold flex items-center gap-3 text-purple-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -259,9 +263,9 @@
                 Логи Контейнера
             </h3>
             <div class="flex items-center gap-4">
-                <span class="text-xs text-gray-500">Ширина: Auto | Wrap: On</span>
+                <span class="text-xs text-purple-400/50">Ширина: Auto | Wrap: On</span>
                 <button onclick="document.getElementById('log-modal').close()"
-                    class="text-gray-400 hover:text-white transition">
+                    class="text-gray-400 hover:text-white transition p-2 hover:bg-purple-900/30 rounded-xl">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -270,8 +274,10 @@
                 </button>
             </div>
         </div>
-        <div id="modal-content" class="p-0 overflow-hidden flex-1 flex flex-col">
-            Загрузка...
+        <div id="modal-content" class="p-0 overflow-hidden flex-1 flex flex-col bg-[#0a0a0f]">
+            <div class="flex items-center justify-center h-full text-purple-400">
+                <span class="animate-pulse">Загрузка...</span>
+            </div>
         </div>
     </div>
 </dialog>
@@ -311,8 +317,11 @@
 
         statusSocket.onopen = function () {
             console.log('📡 Status WebSocket connected');
-            document.getElementById('ws-status')?.classList.add('bg-green-500');
-            document.getElementById('ws-status')?.classList.remove('bg-red-500');
+            const statusEl = document.getElementById('ws-status');
+            if (statusEl) {
+                statusEl.classList.add('bg-green-500', 'shadow-[0_0_10px_rgba(34,197,94,0.6)]');
+                statusEl.classList.remove('bg-red-500');
+            }
         };
 
         statusSocket.onmessage = function (event) {
@@ -332,8 +341,11 @@
 
         statusSocket.onclose = function () {
             console.log('❌ Status WebSocket closed, reconnecting...');
-            document.getElementById('ws-status')?.classList.remove('bg-green-500');
-            document.getElementById('ws-status')?.classList.add('bg-red-500');
+            const statusEl = document.getElementById('ws-status');
+            if (statusEl) {
+                statusEl.classList.remove('bg-green-500', 'shadow-[0_0_10px_rgba(34,197,94,0.6)]');
+                statusEl.classList.add('bg-red-500');
+            }
             // Reconnect after 3 seconds
             setTimeout(connectStatusWebSocket, 3000);
         };
@@ -397,7 +409,7 @@
                     } else if (cpuPercent > 50) {
                         cpuBar.classList.add('bg-yellow-500');
                     } else {
-                        cpuBar.classList.add('bg-cyan-500');
+                        cpuBar.classList.add('bg-violet-500');
                     }
                 }
 
@@ -434,11 +446,11 @@
 </script>
 
 <!-- Modal for Networks/Volumes -->
-<dialog id="nv-modal" class="bg-transparent p-0 w-[90%] max-w-4xl backdrop:bg-black/90">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl">
-        <div class="flex justify-end p-2 border-b border-gray-800 bg-gray-800 rounded-t-lg">
+<dialog id="nv-modal" class="bg-transparent p-0 w-[90%] max-w-4xl">
+    <div class="bg-[#0a0a0f] border border-purple-800/50 rounded-2xl shadow-2xl glow-purple">
+        <div class="flex justify-end p-3 border-b border-purple-900/50 bg-gradient-to-r from-[#12121a] to-[#16162a] rounded-t-2xl">
             <button onclick="document.getElementById('nv-modal').close()"
-                class="text-gray-400 hover:text-white transition p-1 hover:bg-gray-700 rounded">
+                class="text-gray-400 hover:text-white transition p-2 hover:bg-purple-900/30 rounded-xl">
                 ✕
             </button>
         </div>
@@ -449,11 +461,11 @@
 </dialog>
 
 <!-- Modal for Metrics Charts -->
-<dialog id="metrics-modal" class="bg-transparent p-0 w-[90%] max-w-5xl backdrop:bg-black/90">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl">
-        <div class="flex justify-end p-2 border-b border-gray-800 bg-gray-800 rounded-t-lg">
+<dialog id="metrics-modal" class="bg-transparent p-0 w-[90%] max-w-5xl">
+    <div class="bg-[#0a0a0f] border border-purple-800/50 rounded-2xl shadow-2xl glow-purple">
+        <div class="flex justify-end p-3 border-b border-purple-900/50 bg-gradient-to-r from-[#12121a] to-[#16162a] rounded-t-2xl">
             <button onclick="document.getElementById('metrics-modal').close()"
-                class="text-gray-400 hover:text-white transition p-1 hover:bg-gray-700 rounded">
+                class="text-gray-400 hover:text-white transition p-2 hover:bg-purple-900/30 rounded-xl">
                 ✕
             </button>
         </div>

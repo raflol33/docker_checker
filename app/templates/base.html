@@ -9,35 +9,163 @@
     <script src="/static/htmx.min.js"></script>
     <script src="/static/tailwindcss.js"></script>
     <style>
+        /* Custom CSS Variables for Black & Purple Theme */
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a2e;
+            --bg-card: #16162a;
+            --purple-glow: rgba(139, 92, 246, 0.15);
+            --purple-accent: #8b5cf6;
+            --purple-light: #a78bfa;
+            --purple-dark: #6d28d9;
+            --violet-accent: #7c3aed;
+        }
+
+        /* Base Background */
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #0d0d1a 50%, var(--bg-primary) 100%);
+            background-attachment: fixed;
+        }
+
+        /* HTMX Indicator */
         .htmx-indicator {
             opacity: 0;
             transition: opacity 500ms ease-in;
         }
 
-        .htmx-request .htmx-indicator {
-            opacity: 1
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            opacity: 1;
         }
 
-        .htmx-request.htmx-indicator {
-            opacity: 1
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--purple-accent), var(--violet-accent));
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--purple-light), var(--purple-accent));
+        }
+
+        /* Glassmorphism Effect */
+        .glass {
+            background: rgba(22, 22, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        /* Purple Glow Effect */
+        .glow-purple {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), 0 0 40px rgba(139, 92, 246, 0.1);
+        }
+
+        .glow-purple-sm {
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+        }
+
+        /* Gradient Border */
+        .gradient-border {
+            position: relative;
+            background: var(--bg-card);
+            border-radius: 0.75rem;
+        }
+
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 0.75rem;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(124, 58, 237, 0.2), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* Button Glow on Hover */
+        .btn-glow:hover {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
+        }
+
+        /* Animated Gradient Background for special elements */
+        .animated-gradient {
+            background: linear-gradient(-45deg, #0a0a0f, #1a1a2e, #2d1b4e, #1a1a2e);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Pulse animation for status indicators */
+        .pulse-purple {
+            animation: pulse-purple 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-purple {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Input Focus Glow */
+        input:focus, select:focus, textarea:focus {
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Dialog Backdrop */
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Smooth transitions */
+        * {
+            transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
         }
     </style>
 </head>
 
-<body class="bg-gray-900 text-gray-100 font-sans min-h-screen">
-    <nav class="bg-gray-800 border-b border-gray-700 p-4">
+<body class="bg-[#0a0a0f] text-gray-100 font-sans min-h-screen antialiased">
+    <nav class="glass border-b border-purple-900/30 p-4 sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold text-blue-400">🐳 Docker Менеджер</h1>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 via-violet-400 to-purple-500 bg-clip-text text-transparent flex items-center gap-2">
+                <span class="text-2xl">🐳</span> Docker Менеджер
+            </h1>
             {% if user %}
             <div class="flex items-center gap-4">
-                <a href="/alerts" class="text-gray-400 hover:text-white text-sm transition">🔔 Alerts</a>
-                <a href="/ssh-keys" class="text-gray-400 hover:text-white text-sm transition">🔑 SSH Keys</a>
-                <span class="text-gray-300">{{ user.username }}</span>
-                <a href="/logout" class="text-red-400 hover:text-red-300 text-sm">Выйти</a>
+                <a href="/alerts" class="text-gray-400 hover:text-purple-300 text-sm transition flex items-center gap-1">
+                    <span>🔔</span> Alerts
+                </a>
+                <a href="/ssh-keys" class="text-gray-400 hover:text-purple-300 text-sm transition flex items-center gap-1">
+                    <span>🔑</span> SSH Keys
+                </a>
+                <span class="text-purple-200/70 text-sm px-3 py-1 rounded-full bg-purple-900/20 border border-purple-800/30">
+                    {{ user.username }}
+                </span>
+                <a href="/logout" class="text-red-400 hover:text-red-300 text-sm px-3 py-1 rounded-lg hover:bg-red-900/20 transition">
+                    Выйти
+                </a>
             </div>
             {% endif %}
-
-
         </div>
     </nav>
 
@@ -45,8 +173,10 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="text-center text-gray-500 text-xs py-4 mt-8">
-        Docker Менеджер - Демо Версия
+    <footer class="text-center text-gray-600 text-xs py-6 mt-8 border-t border-purple-900/20">
+        <span class="bg-gradient-to-r from-purple-500/50 to-violet-500/50 bg-clip-text text-transparent">
+            Docker Менеджер - Демо Версия
+        </span>
     </footer>
 </body>
 

@@ -1,16 +1,16 @@
-<div class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" id="images-modal">
-    <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col border border-gray-700">
-        <div class="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-900 rounded-t-lg">
-            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+<div class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm" id="images-modal">
+    <div class="bg-[#0a0a0f] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col border border-purple-800/50 glow-purple">
+        <div class="flex justify-between items-center p-5 border-b border-purple-900/50 bg-gradient-to-r from-[#12121a] to-[#16162a] rounded-t-2xl">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Образы на {{ host_name }}
+                <span class="bg-gradient-to-r from-purple-200 to-violet-200 bg-clip-text text-transparent">Образы на {{ host_name }}</span>
             </h3>
             <button onclick="document.getElementById('images-modal').remove()"
-                class="text-gray-400 hover:text-white transition">
+                class="text-gray-400 hover:text-white transition p-2 hover:bg-purple-900/30 rounded-xl">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -20,36 +20,38 @@
 
         <div class="p-0 overflow-auto flex-1">
             {% if error %}
-            <div class="p-4 bg-red-900/50 text-red-200 border-l-4 border-red-500 m-4">
+            <div class="p-4 bg-red-900/30 text-red-200 border-l-4 border-red-500 m-4 rounded-r-xl">
                 {{ error }}
             </div>
             {% endif %}
 
             <table class="w-full text-left border-collapse">
-                <thead class="bg-gray-700/50 text-gray-400 text-xs uppercase sticky top-0 backdrop-blur-sm">
+                <thead class="bg-[#12121a]/90 text-purple-300/70 text-xs uppercase sticky top-0 backdrop-blur-sm">
                     <tr>
-                        <th class="px-6 py-3">Тег</th>
-                        <th class="px-6 py-3">ID</th>
-                        <th class="px-6 py-3">Создан</th>
-                        <th class="px-6 py-3">Размер</th>
-                        <th class="px-6 py-3 text-right">Действия</th>
+                        <th class="px-6 py-4">Тег</th>
+                        <th class="px-6 py-4">ID</th>
+                        <th class="px-6 py-4">Создан</th>
+                        <th class="px-6 py-4">Размер</th>
+                        <th class="px-6 py-4 text-right">Действия</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-700 text-sm">
+                <tbody class="divide-y divide-purple-900/20 text-sm">
                     {% for img in images %}
-                    <tr class="hover:bg-gray-700/30 transition">
-                        <td class="px-6 py-3 font-mono text-white">
+                    <tr class="hover:bg-purple-900/10 transition">
+                        <td class="px-6 py-4 font-mono text-white">
                             <div class="truncate max-w-[250px]" title="{{ img.tag }}">
                                 {{ img.tag }}
                             </div>
                         </td>
-                        <td class="px-6 py-3 font-mono text-gray-400 text-xs">{{ img.id[:12] }}</td>
-                        <td class="px-6 py-3 text-gray-300">{{ img.created }}</td>
-                        <td class="px-6 py-3 text-gray-300">{{ img.size }}</td>
-                        <td class="px-6 py-3 text-right">
+                        <td class="px-6 py-4 font-mono text-purple-400/70 text-xs">{{ img.id[:12] }}</td>
+                        <td class="px-6 py-4 text-gray-300">{{ img.created }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 bg-purple-900/30 text-purple-300 rounded-lg text-xs">{{ img.size }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
                             <button hx-delete="/images/{{ host_name }}/{{ img.id }}"
                                 hx-confirm="Вы уверены, что хотите удалить образ {{ img.tag }}?" hx-target="closest tr"
-                                hx-swap="outerHTML" class="text-red-500 hover:text-red-400 transition"
+                                hx-swap="outerHTML" class="text-red-400 hover:text-red-300 transition p-2 hover:bg-red-900/30 rounded-xl"
                                 title="Удалить Образ">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -61,7 +63,10 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">Образы не найдены</td>
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            <span class="text-3xl">📭</span>
+                            <p class="mt-2 text-purple-300/50">Образы не найдены</p>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
