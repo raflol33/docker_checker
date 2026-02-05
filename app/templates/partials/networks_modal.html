@@ -1,0 +1,51 @@
+<!-- Networks Modal Content -->
+<div class="p-4">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold flex items-center gap-2">
+            🌐 Networks on <span class="text-blue-400">{{ host_name }}</span>
+        </h3>
+        <button hx-post="/networks/{{ host_name }}/prune" hx-swap="none" hx-confirm="Remove all unused networks?"
+            class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-3 py-1 rounded text-sm border border-red-600/50 transition">
+            🧹 Prune Unused
+        </button>
+    </div>
+
+    {% if networks %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="text-xs text-gray-400 uppercase bg-gray-700/50">
+                <tr>
+                    <th class="px-3 py-2 text-left">Network ID</th>
+                    <th class="px-3 py-2 text-left">Name</th>
+                    <th class="px-3 py-2 text-left">Driver</th>
+                    <th class="px-3 py-2 text-left">Scope</th>
+                    <th class="px-3 py-2 text-right">Containers</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for net in networks %}
+                <tr class="hover:bg-gray-700/30 transition">
+                    <td class="px-3 py-2 font-mono text-xs text-gray-400">{{ net.id }}</td>
+                    <td class="px-3 py-2 font-semibold text-white">{{ net.name }}</td>
+                    <td class="px-3 py-2">
+                        <span class="px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded text-xs">{{ net.driver }}</span>
+                    </td>
+                    <td class="px-3 py-2 text-gray-400">{{ net.scope }}</td>
+                    <td class="px-3 py-2 text-right">
+                        {% if net.containers > 0 %}
+                        <span class="text-green-400">{{ net.containers }}</span>
+                        {% else %}
+                        <span class="text-gray-500">0</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center text-gray-500 py-8">
+        No networks found
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts - Docker Manager{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold flex items-center gap-3">
+            🔔 Alert Settings
+        </h1>
+        <a href="/" class="text-gray-400 hover:text-white transition">← Назад</a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Settings Form -->
+        <div class="lg:col-span-2 bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <form action="/alerts/save" method="post" class="space-y-6">
+                <!-- Master Switch -->
+                <div class="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+                    <div>
+                        <h3 class="font-bold">Enable Alerts</h3>
+                        <p class="text-xs text-gray-400">Master switch for all notifications</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="enabled" value="true" class="sr-only peer" {% if config and
+                            config.enabled %}checked{% endif %}>
+                        <div
+                            class="w-11 h-6 bg-gray-600 peer-checked:bg-green-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-green-300 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full">
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Telegram Section -->
+                <div class="border border-blue-900/50 rounded-lg p-4 bg-blue-900/10">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-blue-400 flex items-center gap-2">
+                            <span>📱</span> Telegram
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" name="telegram_enabled" value="true" {% if config and
+                                config.telegram_enabled %}checked{% endif %} class="w-4 h-4 rounded bg-gray-700">
+                            <button type="button" onclick="testAlert('telegram')"
+                                class="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded">Test</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Bot Token</label>
+                            <input type="text" name="telegram_token"
+                                value="{{ config.telegram_token if config and config.telegram_token else '' }}"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                                placeholder="123456:ABC-DEF1234...">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Chat ID</label>
+                            <input type="text" name="telegram_chat_id"
+                                value="{{ config.telegram_chat_id if config and config.telegram_chat_id else '' }}"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                                placeholder="-1001234567890">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Section -->
+                <div class="border border-purple-900/50 rounded-lg p-4 bg-purple-900/10">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-purple-400 flex items-center gap-2">
+                            <span>📧</span> Email
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" name="email_enabled" value="true" {% if config and
+                                config.email_enabled %}checked{% endif %} class="w-4 h-4 rounded bg-gray-700">
+                            <button type="button" onclick="testAlert('email')"
+                                class="text-xs bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded">Test</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">SMTP Host</label>
+                            <input type="text" name="email_smtp_host"
+                                value="{{ config.email_smtp_host if config and config.email_smtp_host else '' }}"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                                placeholder="smtp.gmail.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">SMTP Port</label>
+                            <input type="number" name="email_smtp_port"
+                                value="{{ config.email_smtp_port if config and config.email_smtp_port else 587 }}"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">From Email</label>
+                            <input type="email" name="email_from"
+                                value="{{ config.email_from if config and config.email_from else '' }}"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                                placeholder="alerts@example.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">To Email</label>
+                            <input type="email" name="email_to"
+                                value="{{ config.email_to if config and config.email_to else '' }}"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                                placeholder="admin@example.com">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs text-gray-400 mb-1">Email Password / App Password</label>
+                            <input type="password" name="email_password"
+                                value="{{ config.email_password if config and config.email_password else '' }}"
+                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                                placeholder="••••••••">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Webhook Section -->
+                <div class="border border-green-900/50 rounded-lg p-4 bg-green-900/10">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-green-400 flex items-center gap-2">
+                            <span>🔗</span> Webhook
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" name="webhook_enabled" value="true" {% if config and
+                                config.webhook_enabled %}checked{% endif %} class="w-4 h-4 rounded bg-gray-700">
+                            <button type="button" onclick="testAlert('webhook')"
+                                class="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded">Test</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Webhook URL</label>
+                        <input type="url" name="webhook_url"
+                            value="{{ config.webhook_url if config and config.webhook_url else '' }}"
+                            class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                            placeholder="https://hooks.slack.com/services/...">
+                    </div>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition">
+                    💾 Save Settings
+                </button>
+            </form>
+        </div>
+
+        <!-- History -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700">
+            <div class="p-4 border-b border-gray-700">
+                <h3 class="font-bold">📜 Alert History</h3>
+            </div>
+            <div class="max-h-[500px] overflow-y-auto">
+                {% if history %}
+                <div class="divide-y divide-gray-700">
+                    {% for h in history %}
+                    <div class="p-3 hover:bg-gray-700/30">
+                        <div class="flex items-center gap-2">
+                            {% if h.event_type == 'down' %}
+                            <span class="text-red-400">🔴</span>
+                            {% elif h.event_type == 'up' %}
+                            <span class="text-green-400">🟢</span>
+                            {% else %}
+                            <span class="text-yellow-400">⚠️</span>
+                            {% endif %}
+                            <span class="font-semibold text-sm">{{ h.container_name[:20] }}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {{ h.host_name }} • {{ h.sent_via }} • {{ h.timestamp.strftime('%m/%d %H:%M') }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-6 text-center text-gray-500">
+                    <span class="text-3xl">📭</span>
+                    <p class="mt-2">No alerts sent yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function testAlert(channel) {
+        const formData = new FormData();
+        formData.append('channel', channel);
+
+        try {
+            const response = await fetch('/alerts/test', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                alert(`✅ ${channel} test sent successfully!`);
+            } else {
+                alert(`❌ ${channel} test failed. Check your settings.`);
+            }
+        } catch (e) {
+            alert('Error sending test');
+        }
+    }
+</script>
+{% endblock %}

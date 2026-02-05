@@ -1,0 +1,150 @@
+<!-- Terminal Modal -->
+<dialog id="terminal-modal" class="bg-transparent p-0 w-[95%] max-w-5xl backdrop:bg-black/90 h-[80vh]">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl flex flex-col h-full">
+        <div class="p-3 border-b border-gray-800 flex justify-between items-center bg-gray-800 rounded-t-lg">
+            <h3 class="font-bold flex items-center gap-2 text-sm">
+                <span>🖥️</span> Terminal: <span id="terminal-container-name" class="text-blue-400 font-mono"></span>
+            </h3>
+            <div class="flex items-center gap-2">
+                <span id="terminal-status" class="text-xs text-gray-500">Connecting...</span>
+                <button onclick="closeTerminal()"
+                    class="text-gray-400 hover:text-white transition p-1 hover:bg-gray-700 rounded">
+                    ✕
+                </button>
+            </div>
+        </div>
+        <div id="terminal-container" class="flex-1 p-2 bg-black"></div>
+    </div>
+</dialog>
+
+<!-- xterm.js CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
+
+<script>
+    let terminal = null;
+    let terminalSocket = null;
+    let fitAddon = null;
+
+    function openTerminal(hostName, containerId, containerName) {
+        const modal = document.getElementById('terminal-modal');
+        const containerEl = document.getElementById('terminal-container');
+        const nameEl = document.getElementById('terminal-container-name');
+        const statusEl = document.getElementById('terminal-status');
+
+        nameEl.textContent = containerName;
+        containerEl.innerHTML = '';
+
+        // Initialize xterm
+        terminal = new Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
+            theme: {
+                background: '#0d1117',
+                foreground: '#c9d1d9',
+                cursor: '#58a6ff',
+                cursorAccent: '#0d1117',
+                selection: '#264f78',
+                black: '#0d1117',
+                red: '#ff7b72',
+                green: '#7ee787',
+                yellow: '#d29922',
+                blue: '#58a6ff',
+                magenta: '#bc8cff',
+                cyan: '#39c5cf',
+                white: '#b1bac4',
+                brightBlack: '#484f58',
+                brightRed: '#ffa198',
+                brightGreen: '#7ee787',
+                brightYellow: '#e3b341',
+                brightBlue: '#79c0ff',
+                brightMagenta: '#d2a8ff',
+                brightCyan: '#56d4dd',
+                brightWhite: '#f0f6fc'
+            }
+        });
+
+        fitAddon = new FitAddon.FitAddon();
+        terminal.loadAddon(fitAddon);
+        terminal.loadAddon(new WebLinksAddon.WebLinksAddon());
+
+        terminal.open(containerEl);
+        fitAddon.fit();
+
+        // Connect WebSocket
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/terminal/${hostName}/${containerId}`;
+
+        statusEl.textContent = 'Connecting...';
+        statusEl.className = 'text-xs text-yellow-400';
+
+        terminalSocket = new WebSocket(wsUrl);
+
+        terminalSocket.onopen = function () {
+            statusEl.textContent = 'Connected';
+            statusEl.className = 'text-xs text-green-400';
+            terminal.focus();
+        };
+
+        terminalSocket.onmessage = function (event) {
+            terminal.write(event.data);
+        };
+
+        terminalSocket.onclose = function () {
+            statusEl.textContent = 'Disconnected';
+            statusEl.className = 'text-xs text-red-400';
+            terminal.write('\r\n\x1b[31m[Connection closed]\x1b[0m\r\n');
+        };
+
+        terminalSocket.onerror = function () {
+            statusEl.textContent = 'Error';
+            statusEl.className = 'text-xs text-red-400';
+        };
+
+        // Send keystrokes to server
+        terminal.onData(function (data) {
+            if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
+                terminalSocket.send(data);
+            }
+        });
+
+        modal.showModal();
+
+        // Resize handling
+        window.addEventListener('resize', handleTerminalResize);
+        setTimeout(() => fitAddon.fit(), 100);
+    }
+
+    function handleTerminalResize() {
+        if (fitAddon) {
+            fitAddon.fit();
+        }
+    }
+
+    function closeTerminal() {
+        const modal = document.getElementById('terminal-modal');
+
+        if (terminalSocket) {
+            terminalSocket.close();
+            terminalSocket = null;
+        }
+
+        if (terminal) {
+            terminal.dispose();
+            terminal = null;
+        }
+
+        window.removeEventListener('resize', handleTerminalResize);
+        modal.close();
+    }
+
+    // Close on escape
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && document.getElementById('terminal-modal').open) {
+            closeTerminal();
+        }
+    });
+</script>

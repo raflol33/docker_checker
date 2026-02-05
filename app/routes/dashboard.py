@@ -16,6 +16,8 @@ templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    from ..database import SSHKey
+    
     # List all environments with their hosts
     env_result = await db.execute(select(Environment).options(selectinload(Environment.hosts)))
     environments = env_result.scalars().all()
@@ -23,6 +25,10 @@ async def dashboard(request: Request, user=Depends(get_current_user), db: AsyncS
     # List hosts without environment (ungrouped)
     ungrouped_result = await db.execute(select(DockerHost).where(DockerHost.environment_id == None))
     ungrouped_hosts = ungrouped_result.scalars().all()
+    
+    # Get SSH keys for dropdown
+    ssh_keys_result = await db.execute(select(SSHKey).order_by(SSHKey.name))
+    ssh_keys = ssh_keys_result.scalars().all()
     
     all_containers = []
     errors = []
@@ -32,9 +38,11 @@ async def dashboard(request: Request, user=Depends(get_current_user), db: AsyncS
         "user": user, 
         "environments": environments,
         "ungrouped_hosts": ungrouped_hosts,
+        "ssh_keys": ssh_keys,
         "containers": all_containers,
         "errors": errors
     })
+
 
 @router.get("/containers/list", response_class=HTMLResponse)
 async def list_containers_filtered(
@@ -111,6 +119,8 @@ async def add_host(
     ip: str = Form(None),
     port: int = Form(None),
     ssh_user: str = Form(None),
+    ssh_key_id: int = Form(None),
+    ssh_key_password: str = Form(None),
     ssh_password: str = Form(None),
     user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -122,12 +132,16 @@ async def add_host(
         ip=ip,
         port=port,
         ssh_user=ssh_user,
-        ssh_password=ssh_password,
-        ssh_key_path="/root/.ssh/id_rsa" if type == 'ssh' and not ssh_password else None
+        ssh_key_id=ssh_key_id if ssh_key_id else None,
+        ssh_key_password=ssh_key_password if ssh_key_id else None,
+        ssh_password=ssh_password if not ssh_key_id else None,
+        ssh_key_path=None  # Legacy field, not used when ssh_key_id is set
     )
     db.add(new_host)
     await db.commit()
     return RedirectResponse("/", status_code=303)
+
+
 
 @router.get("/hosts/{host_id}/details", response_class=HTMLResponse)
 async def get_host_details(
@@ -378,10 +392,29 @@ async def websocket_container_status(
                 hosts = result.scalars().all()
                 
                 all_containers = []
+                all_stats = {}
+                
                 for host in hosts:
                     try:
                         containers = await DockerService.list_containers(host, loop)
                         all_containers.extend(containers)
+                        
+                        # Get stats for this host
+                        stats = await DockerService.get_container_stats(host, loop)
+                        all_stats.update(stats)
+                        
+                        # Save metrics to database (every cycle = 5 seconds)
+                        from ..database import ContainerMetric
+                        for container_id, stat in stats.items():
+                            metric = ContainerMetric(
+                                container_id=container_id[:12],
+                                host_name=host.name,
+                                cpu_percent=stat.get('cpu_percent', 0),
+                                mem_percent=stat.get('mem_percent', 0),
+                                mem_usage=stat.get('mem_usage', 0)
+                            )
+                            db.add(metric)
+                        await db.commit()
                     except Exception:
                         pass
                 
@@ -389,8 +422,10 @@ async def websocket_container_status(
                 import json
                 await websocket.send_text(json.dumps({
                     "type": "status_update",
-                    "containers": all_containers
+                    "containers": all_containers,
+                    "stats": all_stats
                 }))
+
                 
                 # Wait 5 seconds before next update
                 await asyncio.sleep(5)
@@ -407,9 +442,74 @@ async def websocket_container_status(
                 except:
                     break
                 await asyncio.sleep(5)
+
                 
     except Exception:
         pass
+    finally:
+        try:
+            await websocket.close()
+        except:
+            pass
+
+@router.websocket("/ws/terminal/{host_name}/{container_id}")
+async def websocket_terminal(
+    websocket: WebSocket,
+    host_name: str,
+    container_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """WebSocket endpoint for interactive terminal (docker exec)"""
+    await websocket.accept()
+    
+    try:
+        result = await db.execute(select(DockerHost).where(DockerHost.name == host_name))
+        host = result.scalar_one_or_none()
+        
+        if not host:
+            await websocket.send_text("\r\n\x1b[31mError: Host not found\x1b[0m\r\n")
+            await websocket.close()
+            return
+        
+        loop = asyncio.get_running_loop()
+        
+        try:
+            reader, writer, cleanup = await DockerService.exec_interactive(host, container_id, loop)
+        except Exception as e:
+            await websocket.send_text(f"\r\n\x1b[31mError starting terminal: {str(e)}\x1b[0m\r\n")
+            await websocket.close()
+            return
+        
+        # Task to read from container and send to websocket
+        async def read_task():
+            try:
+                async for chunk in reader:
+                    await websocket.send_text(chunk)
+            except Exception:
+                pass
+        
+        # Start reader task
+        reader_task = asyncio.create_task(read_task())
+        
+        try:
+            # Main loop: receive from websocket and send to container
+            while True:
+                try:
+                    data = await websocket.receive_text()
+                    writer(data)
+                except WebSocketDisconnect:
+                    break
+                except Exception:
+                    break
+        finally:
+            reader_task.cancel()
+            cleanup()
+            
+    except Exception as e:
+        try:
+            await websocket.send_text(f"\r\n\x1b[31mConnection error: {str(e)}\x1b[0m\r\n")
+        except:
+            pass
     finally:
         try:
             await websocket.close()

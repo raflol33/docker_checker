@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}SSH Keys - Docker Manager{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold flex items-center gap-3">
+            🔑 SSH Key Management
+        </h1>
+        <a href="/" class="text-gray-400 hover:text-white transition">← Назад</a>
+    </div>
+
+    {% if generated_key %}
+    <!-- One-time display of generated key -->
+    <div class="bg-green-900/30 border border-green-600 rounded-lg p-6 mb-6">
+        <div class="flex items-start gap-4">
+            <span class="text-4xl">🎉</span>
+            <div class="flex-1">
+                <h2 class="text-xl font-bold text-green-400 mb-2">Ключ сгенерирован: {{ generated_key.name }}</h2>
+                <p class="text-yellow-400 text-sm mb-4">
+                    ⚠️ <strong>ВАЖНО:</strong> Скопируйте приватный ключ сейчас! Он показывается только один раз.
+                    Для повторного просмотра потребуется пароль.
+                </p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">🔒 Private Key (сохраните!)</label>
+                        <div class="relative">
+                            <textarea id="gen-private-key" readonly rows="8"
+                                class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-xs font-mono">{{ generated_key.private_key }}</textarea>
+                            <button onclick="copyToClipboard('gen-private-key')"
+                                class="absolute top-2 right-2 bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs">
+                                📋 Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">🔓 Public Key (для authorized_keys)</label>
+                        <div class="relative">
+                            <textarea id="gen-public-key" readonly rows="2"
+                                class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-xs font-mono">{{ generated_key.public_key }}</textarea>
+                            <button onclick="copyToClipboard('gen-public-key')"
+                                class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs">
+                                📋 Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Add/Generate Key Form -->
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <h3 class="font-bold mb-4 text-lg">🔐 Добавить ключ</h3>
+
+            <!-- Generate new key -->
+            <form action="/ssh-keys/generate" method="post" class="space-y-4 mb-6">
+                <h4 class="font-semibold text-green-400 text-sm">Сгенерировать новый</h4>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Название ключа</label>
+                    <input type="text" name="name" required
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-green-500"
+                        placeholder="my-server-key">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Пароль для шифрования</label>
+                    <input type="password" name="encryption_password" required minlength="4"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-green-500"
+                        placeholder="••••••••">
+                    <p class="text-xs text-gray-500 mt-1">Запомните! Нужен для просмотра ключа</p>
+                </div>
+                <button type="submit"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded transition font-bold">
+                    🔄 Сгенерировать RSA-4096
+                </button>
+            </form>
+
+            <div class="border-t border-gray-700 my-4"></div>
+
+            <!-- Add existing key -->
+            <form action="/ssh-keys/add" method="post" class="space-y-4">
+                <h4 class="font-semibold text-blue-400 text-sm">Или добавить существующий</h4>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Название</label>
+                    <input type="text" name="name" required
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                        placeholder="existing-key">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Private Key (PEM)</label>
+                    <textarea name="private_key" required rows="4"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-xs font-mono focus:outline-none focus:border-blue-500"
+                        placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Пароль для шифрования</label>
+                    <input type="password" name="encryption_password" required minlength="4"
+                        class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                        placeholder="••••••••">
+                </div>
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition font-bold">
+                    ➕ Добавить
+                </button>
+            </form>
+        </div>
+
+        <!-- Keys List -->
+        <div class="lg:col-span-2 bg-gray-800 rounded-lg border border-gray-700">
+            <div class="p-4 border-b border-gray-700">
+                <h3 class="font-bold text-lg">Сохранённые ключи</h3>
+            </div>
+
+            {% if keys %}
+            <div class="divide-y divide-gray-700">
+                {% for key in keys %}
+                <div class="p-4 hover:bg-gray-700/30 transition">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-white flex items-center gap-2">
+                                🔐 {{ key.name }}
+                            </h4>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Создан: {{ key.created_at.strftime('%Y-%m-%d %H:%M') if key.created_at else 'N/A' }}
+                            </p>
+
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                {% if key.public_key %}
+                                <button onclick="showPublicKey({{ key.id }})"
+                                    class="text-xs bg-blue-700 hover:bg-blue-600 px-2 py-1 rounded transition">
+                                    🔓 Public Key
+                                </button>
+                                {% endif %}
+                                <button onclick="showDecryptForm({{ key.id }})"
+                                    class="text-xs bg-yellow-700 hover:bg-yellow-600 px-2 py-1 rounded transition">
+                                    🔒 Private Key
+                                </button>
+                            </div>
+
+                            <!-- Hidden decrypt form -->
+                            <div id="decrypt-form-{{ key.id }}" class="hidden mt-3 p-3 bg-gray-900 rounded">
+                                <p class="text-xs text-yellow-400 mb-2">Введите пароль для расшифровки:</p>
+                                <div class="flex gap-2">
+                                    <input type="password" id="pwd-{{ key.id }}"
+                                        class="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                                        placeholder="Пароль">
+                                    <button onclick="decryptKey({{ key.id }})"
+                                        class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm">
+                                        Показать
+                                    </button>
+                                </div>
+                                <pre id="decrypted-{{ key.id }}"
+                                    class="hidden mt-2 text-xs font-mono bg-gray-800 p-2 rounded overflow-x-auto"></pre>
+                            </div>
+
+                            <!-- Public key display -->
+                            <div id="pubkey-{{ key.id }}" class="hidden mt-3">
+                                <pre
+                                    class="text-xs text-gray-400 font-mono bg-gray-900 p-2 rounded break-all whitespace-pre-wrap">{{ key.public_key }}</pre>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500">
+                                {% if key.hosts %}
+                                {{ key.hosts|length }} хост
+                                {% endif %}
+                            </span>
+                            <button hx-delete="/ssh-keys/{{ key.id }}" hx-confirm="Удалить ключ {{ key.name }}?"
+                                hx-swap="innerHTML" hx-target="body"
+                                class="text-red-400 hover:text-red-300 transition p-1 hover:bg-red-900/30 rounded"
+                                title="Удалить">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-500">
+                <span class="text-4xl">🔑</span>
+                <p class="mt-2">Нет сохранённых ключей</p>
+                <p class="text-xs text-gray-600">Сгенерируйте или добавьте SSH ключ</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyToClipboard(elementId) {
+        const el = document.getElementById(elementId);
+        el.select();
+        document.execCommand('copy');
+        alert('Скопировано в буфер обмена!');
+    }
+
+    function showPublicKey(keyId) {
+        const el = document.getElementById(`pubkey-${keyId}`);
+        el.classList.toggle('hidden');
+    }
+
+    function showDecryptForm(keyId) {
+        const el = document.getElementById(`decrypt-form-${keyId}`);
+        el.classList.toggle('hidden');
+    }
+
+    async function decryptKey(keyId) {
+        const password = document.getElementById(`pwd-${keyId}`).value;
+        if (!password) {
+            alert('Введите пароль');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('password', password);
+
+        try {
+            const response = await fetch(`/ssh-keys/${keyId}/decrypt`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            const resultEl = document.getElementById(`decrypted-${keyId}`);
+
+            if (data.error) {
+                resultEl.textContent = '❌ ' + data.error;
+                resultEl.classList.remove('hidden');
+                resultEl.classList.add('text-red-400');
+            } else {
+                resultEl.textContent = data.private_key;
+                resultEl.classList.remove('hidden', 'text-red-400');
+                resultEl.classList.add('text-green-400');
+            }
+        } catch (e) {
+            alert('Ошибка при расшифровке');
+        }
+    }
+</script>
+{% endblock %}

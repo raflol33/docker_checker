@@ -33,7 +33,11 @@ async def unauthorized_exception_handler(request: Request, exc: HTTPException):
     # Otherwise return normal JSON error
     return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": exc.detail})
 
-from .routes import auth, dashboard
+from .routes import auth, dashboard, networks, ssh_keys, metrics, alerts
 
 app.include_router(dashboard.router)
 app.include_router(auth.router)
+app.include_router(networks.router)
+app.include_router(ssh_keys.router)
+app.include_router(metrics.router)
+app.include_router(alerts.router)

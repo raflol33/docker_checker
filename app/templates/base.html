@@ -30,10 +30,14 @@
             <h1 class="text-xl font-bold text-blue-400">🐳 Docker Менеджер</h1>
             {% if user %}
             <div class="flex items-center gap-4">
-                <span class="text-gray-300">Пользователь: {{ user.username }}</span>
+                <a href="/alerts" class="text-gray-400 hover:text-white text-sm transition">🔔 Alerts</a>
+                <a href="/ssh-keys" class="text-gray-400 hover:text-white text-sm transition">🔑 SSH Keys</a>
+                <span class="text-gray-300">{{ user.username }}</span>
                 <a href="/logout" class="text-red-400 hover:text-red-300 text-sm">Выйти</a>
             </div>
             {% endif %}
+
+
         </div>
     </nav>
 

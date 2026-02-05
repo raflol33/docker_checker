@@ -64,8 +64,23 @@
                                     onclick="event.stopPropagation()" title="Образы">
                                     📦
                                 </button>
+                                <button
+                                    class="text-xs bg-cyan-900/50 hover:bg-cyan-800 text-cyan-200 px-1.5 py-0.5 rounded border border-cyan-700 transition"
+                                    hx-get="/networks/{{ host.name }}" hx-target="#nv-modal-content"
+                                    onclick="event.stopPropagation(); document.getElementById('nv-modal').showModal()"
+                                    title="Networks">
+                                    🌐
+                                </button>
+                                <button
+                                    class="text-xs bg-pink-900/50 hover:bg-pink-800 text-pink-200 px-1.5 py-0.5 rounded border border-pink-700 transition"
+                                    hx-get="/volumes/{{ host.name }}" hx-target="#nv-modal-content"
+                                    onclick="event.stopPropagation(); document.getElementById('nv-modal').showModal()"
+                                    title="Volumes">
+                                    💾
+                                </button>
                                 <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{
                                     host.type }}</span>
+
                             </div>
                         </li>
                         {% else %}
@@ -106,8 +121,23 @@
                                     onclick="event.stopPropagation()" title="Образы">
                                     📦
                                 </button>
+                                <button
+                                    class="text-xs bg-cyan-900/50 hover:bg-cyan-800 text-cyan-200 px-1.5 py-0.5 rounded border border-cyan-700 transition"
+                                    hx-get="/networks/{{ host.name }}" hx-target="#nv-modal-content"
+                                    onclick="event.stopPropagation(); document.getElementById('nv-modal').showModal()"
+                                    title="Networks">
+                                    🌐
+                                </button>
+                                <button
+                                    class="text-xs bg-pink-900/50 hover:bg-pink-800 text-pink-200 px-1.5 py-0.5 rounded border border-pink-700 transition"
+                                    hx-get="/volumes/{{ host.name }}" hx-target="#nv-modal-content"
+                                    onclick="event.stopPropagation(); document.getElementById('nv-modal').showModal()"
+                                    title="Volumes">
+                                    💾
+                                </button>
                                 <span class="text-xs text-gray-400 uppercase border border-gray-600 px-1 rounded">{{
                                     host.type }}</span>
+
                             </div>
                         </li>
                         {% endfor %}
@@ -149,11 +179,21 @@
                         class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
                     <input type="text" name="ssh_user" placeholder="Пользователь SSH"
                         class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
-                    <input type="text" name="ssh_password" placeholder="Пароль SSH (Необязательно)"
+                    <select name="ssh_key_id" class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                        <option value="">— SSH Ключ (не выбран) —</option>
+                        {% for key in ssh_keys %}
+                        <option value="{{ key.id }}">🔑 {{ key.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="password" name="ssh_key_password" placeholder="Пароль от ключа (для расшифровки)"
+                        class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
+                    <input type="text" name="ssh_password" placeholder="Или Пароль SSH"
                         class="w-full bg-gray-700 rounded p-2 text-xs border border-gray-600">
                     <button class="w-full bg-green-700 hover:bg-green-600 text-white p-2 rounded text-xs">Добавить
                         Хост</button>
                 </form>
+
+
             </details>
         </div>
     </div>
@@ -191,10 +231,12 @@
                             <th class="px-4 py-3">Образ</th>
                             <th class="px-4 py-3">Создан</th>
                             <th class="px-4 py-3">Порты</th>
+                            <th class="px-4 py-3">Resources</th>
                             <th class="px-4 py-3">Хост</th>
                             <th class="px-4 py-3 text-right">Действия</th>
                         </tr>
                     </thead>
+
                     <tbody id="container-list" class="divide-y divide-gray-700">
                         {% include "partials/container_rows.html" %}
                     </tbody>
@@ -278,11 +320,15 @@
                 const data = JSON.parse(event.data);
                 if (data.type === 'status_update') {
                     updateContainerTable(data.containers);
+                    if (data.stats) {
+                        updateContainerStats(data.stats);
+                    }
                 }
             } catch (e) {
                 console.error('Parse error:', e);
             }
         };
+
 
         statusSocket.onclose = function () {
             console.log('❌ Status WebSocket closed, reconnecting...');
@@ -329,6 +375,51 @@
         });
     }
 
+    function updateContainerStats(stats) {
+        // Update CPU/RAM progress bars for each container
+        Object.entries(stats).forEach(([containerId, stat]) => {
+            const cell = document.querySelector(`.resources-cell[data-container-id="${containerId}"]`);
+            if (cell) {
+                const cpuBar = cell.querySelector('.cpu-bar');
+                const cpuText = cell.querySelector('.cpu-text');
+                const memBar = cell.querySelector('.mem-bar');
+                const memText = cell.querySelector('.mem-text');
+
+                if (cpuBar && cpuText) {
+                    const cpuPercent = Math.min(stat.cpu_percent || 0, 100);
+                    cpuBar.style.width = `${cpuPercent}%`;
+                    cpuText.textContent = `${stat.cpu_percent || 0}%`;
+
+                    // Color based on usage
+                    cpuBar.className = cpuBar.className.replace(/bg-\w+-500/g, '');
+                    if (cpuPercent > 80) {
+                        cpuBar.classList.add('bg-red-500');
+                    } else if (cpuPercent > 50) {
+                        cpuBar.classList.add('bg-yellow-500');
+                    } else {
+                        cpuBar.classList.add('bg-cyan-500');
+                    }
+                }
+
+                if (memBar && memText) {
+                    const memPercent = Math.min(stat.mem_percent || 0, 100);
+                    memBar.style.width = `${memPercent}%`;
+                    memText.textContent = `${stat.mem_percent || 0}%`;
+
+                    // Color based on usage
+                    memBar.className = memBar.className.replace(/bg-\w+-500/g, '');
+                    if (memPercent > 80) {
+                        memBar.classList.add('bg-red-500');
+                    } else if (memPercent > 50) {
+                        memBar.classList.add('bg-yellow-500');
+                    } else {
+                        memBar.classList.add('bg-purple-500');
+                    }
+                }
+            }
+        });
+    }
+
     // Track host filter changes
     document.addEventListener('htmx:afterRequest', function (evt) {
         const url = evt.detail.requestConfig?.path;
@@ -341,4 +432,36 @@
     // Start WebSocket connection
     document.addEventListener('DOMContentLoaded', connectStatusWebSocket);
 </script>
+
+<!-- Modal for Networks/Volumes -->
+<dialog id="nv-modal" class="bg-transparent p-0 w-[90%] max-w-4xl backdrop:bg-black/90">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl">
+        <div class="flex justify-end p-2 border-b border-gray-800 bg-gray-800 rounded-t-lg">
+            <button onclick="document.getElementById('nv-modal').close()"
+                class="text-gray-400 hover:text-white transition p-1 hover:bg-gray-700 rounded">
+                ✕
+            </button>
+        </div>
+        <div id="nv-modal-content" class="max-h-[70vh] overflow-y-auto">
+            <!-- Content loaded via HTMX -->
+        </div>
+    </div>
+</dialog>
+
+<!-- Modal for Metrics Charts -->
+<dialog id="metrics-modal" class="bg-transparent p-0 w-[90%] max-w-5xl backdrop:bg-black/90">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl">
+        <div class="flex justify-end p-2 border-b border-gray-800 bg-gray-800 rounded-t-lg">
+            <button onclick="document.getElementById('metrics-modal').close()"
+                class="text-gray-400 hover:text-white transition p-1 hover:bg-gray-700 rounded">
+                ✕
+            </button>
+        </div>
+        <div id="metrics-modal-content" class="max-h-[80vh] overflow-y-auto">
+            <!-- Content loaded via HTMX -->
+        </div>
+    </div>
+</dialog>
+
+{% include "partials/terminal.html" %}
 {% endblock %}

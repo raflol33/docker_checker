@@ -1,0 +1,136 @@
+<!-- Metrics Modal Content -->
+<div class="p-4">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold flex items-center gap-2">
+            📊 Метрики: <span class="text-blue-400 font-mono">{{ container_id }}</span>
+            <span class="text-xs text-gray-500">@ {{ host_name }}</span>
+        </h3>
+        <div class="flex gap-2">
+            <button onclick="loadMetrics('1h')"
+                class="period-btn text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition"
+                data-period="1h">1ч</button>
+            <button onclick="loadMetrics('6h')"
+                class="period-btn text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition"
+                data-period="6h">6ч</button>
+            <button onclick="loadMetrics('24h')" class="period-btn text-xs px-2 py-1 rounded bg-blue-600 transition"
+                data-period="24h">24ч</button>
+            <button onclick="loadMetrics('7d')"
+                class="period-btn text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition"
+                data-period="7d">7д</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- CPU Chart -->
+        <div class="bg-gray-800 rounded-lg p-4">
+            <h4 class="text-sm font-semibold text-cyan-400 mb-2">🔥 CPU Usage</h4>
+            <div class="relative h-48">
+                <canvas id="cpuChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Memory Chart -->
+        <div class="bg-gray-800 rounded-lg p-4">
+            <h4 class="text-sm font-semibold text-purple-400 mb-2">💾 Memory Usage</h4>
+            <div class="relative h-48">
+                <canvas id="memChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="metrics-status" class="text-center text-xs text-gray-500 mt-4">
+        Загрузка данных...
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    (function () {
+        const containerId = '{{ container_id }}';
+        const hostName = '{{ host_name }}';
+        let cpuChart, memChart;
+
+        function createChart(ctx, label, color) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#374151' },
+                            ticks: { color: '#9CA3AF', maxTicksLimit: 8 }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            grid: { color: '#374151' },
+                            ticks: {
+                                color: '#9CA3AF',
+                                callback: function (value) { return value + '%'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.loadMetrics = async function (period = '24h') {
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-gray-700');
+            });
+            const activeBtn = document.querySelector(`[data-period="${period}"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-700');
+                activeBtn.classList.add('bg-blue-600');
+            }
+
+            try {
+                const response = await fetch(`/metrics/${hostName}/${containerId}/data?period=${period}`);
+                const data = await response.json();
+
+                if (data.count === 0) {
+                    document.getElementById('metrics-status').textContent = 'Нет данных за выбранный период. Данные собираются каждые 5 секунд.';
+                    return;
+                }
+
+                cpuChart.data.labels = data.labels;
+                cpuChart.data.datasets[0].data = data.cpu;
+                cpuChart.update();
+
+                memChart.data.labels = data.labels;
+                memChart.data.datasets[0].data = data.memory;
+                memChart.update();
+
+                document.getElementById('metrics-status').textContent = `Показано ${data.count} точек данных`;
+            } catch (e) {
+                console.error('Metrics error:', e);
+                document.getElementById('metrics-status').textContent = 'Ошибка загрузки данных';
+            }
+        };
+
+        // Initialize charts immediately (HTMX loads this after DOM is ready)
+        setTimeout(() => {
+            cpuChart = createChart(document.getElementById('cpuChart'), 'CPU %', '#06B6D4');
+            memChart = createChart(document.getElementById('memChart'), 'Memory %', '#A855F7');
+            loadMetrics('24h');
+        }, 100);
+    })();
+</script>

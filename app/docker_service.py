@@ -158,29 +158,133 @@ class DockerService:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         
-        # In a real app, handle keys files properly. 
-        # Here we accept key path or password.
         connect_kwargs = {
             "hostname": host.ip,
             "port": host.port or 22,
             "username": host.ssh_user
         }
         
-        if host.ssh_password:
+        # Priority: 1. SSH Key from DB (encrypted), 2. Password, 3. Key file path
+        if host.ssh_key and host.ssh_key.private_key:
+            import io
+            from cryptography.fernet import Fernet
+            import base64
+            import hashlib
+            
+            private_key_data = host.ssh_key.private_key
+            
+            # Try to decrypt if key password is provided
+            if host.ssh_key_password:
+                try:
+                    key = hashlib.sha256(host.ssh_key_password.encode()).digest()
+                    fernet_key = base64.urlsafe_b64encode(key)
+                    fernet = Fernet(fernet_key)
+                    private_key_data = fernet.decrypt(private_key_data.encode()).decode()
+                except Exception:
+                    pass  # Key might not be encrypted
+            
+            key_file = io.StringIO(private_key_data)
+            try:
+                pkey = paramiko.RSAKey.from_private_key(key_file)
+            except:
+                key_file.seek(0)
+                try:
+                    pkey = paramiko.Ed25519Key.from_private_key(key_file)
+                except:
+                    key_file.seek(0)
+                    pkey = paramiko.ECDSAKey.from_private_key(key_file)
+            connect_kwargs["pkey"] = pkey
+        elif host.ssh_password:
             connect_kwargs["password"] = host.ssh_password
         elif host.ssh_key_path:
             connect_kwargs["key_filename"] = host.ssh_key_path
             
-        # This is a blocking call, checking how to make it async friendly?
-        # Run in executor.
         def connect():
             client.connect(**connect_kwargs)
         
         await asyncio.to_thread(connect)
         return client
 
+
+    @staticmethod
+    async def get_container_stats(host: DockerHost, loop: asyncio.AbstractEventLoop) -> Dict[str, Dict[str, Any]]:
+        """
+        Get CPU/Memory stats for all running containers.
+        Returns dict keyed by container ID with cpu_percent, mem_percent, mem_usage, mem_limit.
+        """
+        stats = {}
+        
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            containers = await loop.run_in_executor(None, lambda: client.containers.list(filters={"status": "running"}))
+            
+            for container in containers:
+                try:
+                    # Get one-shot stats
+                    raw_stats = await loop.run_in_executor(None, lambda c=container: c.stats(stream=False))
+                    
+                    # Calculate CPU percentage
+                    cpu_delta = raw_stats['cpu_stats']['cpu_usage']['total_usage'] - \
+                                raw_stats['precpu_stats']['cpu_usage']['total_usage']
+                    system_delta = raw_stats['cpu_stats']['system_cpu_usage'] - \
+                                   raw_stats['precpu_stats']['system_cpu_usage']
+                    cpu_count = raw_stats['cpu_stats'].get('online_cpus', 1)
+                    
+                    cpu_percent = 0.0
+                    if system_delta > 0:
+                        cpu_percent = (cpu_delta / system_delta) * cpu_count * 100
+                    
+                    # Memory stats
+                    mem_usage = raw_stats['memory_stats'].get('usage', 0)
+                    mem_limit = raw_stats['memory_stats'].get('limit', 1)
+                    mem_percent = (mem_usage / mem_limit) * 100 if mem_limit > 0 else 0
+                    
+                    stats[container.id[:12]] = {
+                        "cpu_percent": round(cpu_percent, 1),
+                        "mem_percent": round(mem_percent, 1),
+                        "mem_usage": mem_usage,
+                        "mem_limit": mem_limit
+                    }
+                except Exception:
+                    pass
+        else:
+            # SSH: use docker stats --no-stream --format
+            ssh = await DockerService.get_ssh_client(host)
+            try:
+                command = 'docker stats --no-stream --format "{{.ID}}|{{.CPUPerc}}|{{.MemPerc}}|{{.MemUsage}}"'
+                stdin, stdout, stderr = await loop.run_in_executor(None, ssh.exec_command, command)
+                output = await loop.run_in_executor(None, stdout.read)
+                output_str = output.decode()
+                
+                for line in output_str.strip().split('\n'):
+                    if '|' in line:
+                        parts = line.split('|')
+                        if len(parts) >= 4:
+                            container_id = parts[0][:12]
+                            cpu_str = parts[1].replace('%', '').strip()
+                            mem_str = parts[2].replace('%', '').strip()
+                            mem_usage_str = parts[3]  # e.g., "50MiB / 1GiB"
+                            
+                            try:
+                                cpu_percent = float(cpu_str) if cpu_str else 0
+                                mem_percent = float(mem_str) if mem_str else 0
+                            except ValueError:
+                                cpu_percent = 0
+                                mem_percent = 0
+                            
+                            stats[container_id] = {
+                                "cpu_percent": round(cpu_percent, 1),
+                                "mem_percent": round(mem_percent, 1),
+                                "mem_usage_str": mem_usage_str
+                            }
+            finally:
+                ssh.close()
+        
+        return stats
+
     @staticmethod
     async def list_containers(host: DockerHost, loop: asyncio.AbstractEventLoop) -> List[Dict[str, Any]]:
+
         if host.type == 'local':
             client = DockerService.get_local_client()
             # SDK is blocking
@@ -524,3 +628,262 @@ class DockerService:
                 yield f"Error streaming from {host.name}\n"
             finally:
                 ssh.close()
+
+    @staticmethod
+    async def exec_interactive(host: DockerHost, container_id: str, loop: asyncio.AbstractEventLoop):
+        """
+        Returns a tuple: (read_generator, write_function, cleanup_function)
+        For interactive terminal execution.
+        """
+        import queue
+        import threading
+        
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            container = await loop.run_in_executor(None, client.containers.get, container_id)
+            
+            # Create exec instance with tty
+            exec_id = await loop.run_in_executor(
+                None,
+                lambda: client.api.exec_create(
+                    container.id,
+                    '/bin/sh',
+                    stdin=True,
+                    tty=True,
+                    stderr=True,
+                    stdout=True
+                )
+            )
+            
+            # Start exec with socket
+            socket = await loop.run_in_executor(
+                None,
+                lambda: client.api.exec_start(exec_id, socket=True, tty=True)
+            )
+            
+            sock = socket._sock
+            sock.setblocking(False)
+            
+            q = queue.Queue()
+            running = [True]
+            
+            def reader_thread():
+                import select
+                while running[0]:
+                    try:
+                        ready, _, _ = select.select([sock], [], [], 0.1)
+                        if ready:
+                            data = sock.recv(4096)
+                            if data:
+                                q.put(data)
+                            else:
+                                break
+                    except:
+                        break
+                q.put(None)
+            
+            t = threading.Thread(target=reader_thread, daemon=True)
+            t.start()
+            
+            async def read_output():
+                while True:
+                    chunk = await loop.run_in_executor(None, q.get)
+                    if chunk is None:
+                        break
+                    yield chunk.decode('utf-8', errors='replace')
+            
+            def write_input(data: str):
+                try:
+                    sock.sendall(data.encode())
+                except:
+                    pass
+            
+            def cleanup():
+                running[0] = False
+                try:
+                    sock.close()
+                except:
+                    pass
+            
+            return read_output(), write_input, cleanup
+            
+        else:
+            # SSH remote exec
+            ssh = await DockerService.get_ssh_client(host)
+            transport = ssh.get_transport()
+            channel = transport.open_session()
+            channel.get_pty(term='xterm', width=120, height=40)
+            channel.exec_command(f'docker exec -it {container_id} /bin/sh')
+            
+            q = queue.Queue()
+            running = [True]
+            
+            def reader_thread():
+                while running[0]:
+                    if channel.recv_ready():
+                        data = channel.recv(4096)
+                        if data:
+                            q.put(data)
+                        else:
+                            break
+                    else:
+                        import time
+                        time.sleep(0.05)
+                q.put(None)
+            
+            t = threading.Thread(target=reader_thread, daemon=True)
+            t.start()
+            
+            async def read_output():
+                while True:
+                    chunk = await loop.run_in_executor(None, q.get)
+                    if chunk is None:
+                        break
+                    yield chunk.decode('utf-8', errors='replace')
+            
+            def write_input(data: str):
+                try:
+                    channel.send(data.encode())
+                except:
+                    pass
+            
+            def cleanup():
+                running[0] = False
+                try:
+                    channel.close()
+                    ssh.close()
+                except:
+                    pass
+            
+            return read_output(), write_input, cleanup
+
+    # ===== NETWORKS =====
+    
+    @staticmethod
+    async def list_networks(host: DockerHost, loop: asyncio.AbstractEventLoop) -> List[Dict[str, Any]]:
+        """List all networks on a host"""
+        networks = []
+        
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            net_list = await loop.run_in_executor(None, client.networks.list)
+            for net in net_list:
+                networks.append({
+                    "id": net.id[:12],
+                    "name": net.name,
+                    "driver": net.attrs.get('Driver', 'unknown'),
+                    "scope": net.attrs.get('Scope', 'unknown'),
+                    "containers": len(net.attrs.get('Containers', {}) or {})
+                })
+        else:
+            ssh = await DockerService.get_ssh_client(host)
+            try:
+                command = 'docker network ls --format "{{.ID}}|{{.Name}}|{{.Driver}}|{{.Scope}}"'
+                stdin, stdout, stderr = await loop.run_in_executor(None, ssh.exec_command, command)
+                output = await loop.run_in_executor(None, stdout.read)
+                
+                for line in output.decode().strip().split('\n'):
+                    if '|' in line:
+                        parts = line.split('|')
+                        if len(parts) >= 4:
+                            networks.append({
+                                "id": parts[0][:12],
+                                "name": parts[1],
+                                "driver": parts[2],
+                                "scope": parts[3],
+                                "containers": 0  # Would need additional command
+                            })
+            finally:
+                ssh.close()
+        
+        return networks
+    
+    @staticmethod
+    async def prune_networks(host: DockerHost, loop: asyncio.AbstractEventLoop) -> List[str]:
+        """Remove unused networks"""
+        deleted = []
+        
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            result = await loop.run_in_executor(None, client.networks.prune)
+            deleted = result.get('NetworksDeleted', []) or []
+        else:
+            ssh = await DockerService.get_ssh_client(host)
+            try:
+                command = 'docker network prune -f'
+                stdin, stdout, stderr = await loop.run_in_executor(None, ssh.exec_command, command)
+                output = await loop.run_in_executor(None, stdout.read)
+                # Parse output for deleted networks
+                for line in output.decode().split('\n'):
+                    if line.strip() and not line.startswith('Deleted') and not line.startswith('Total'):
+                        deleted.append(line.strip())
+            finally:
+                ssh.close()
+        
+        return deleted
+
+    # ===== VOLUMES =====
+    
+    @staticmethod
+    async def list_volumes(host: DockerHost, loop: asyncio.AbstractEventLoop) -> List[Dict[str, Any]]:
+        """List all volumes on a host"""
+        volumes = []
+        
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            vol_result = await loop.run_in_executor(None, client.volumes.list)
+            for vol in vol_result:
+                volumes.append({
+                    "name": vol.name,
+                    "driver": vol.attrs.get('Driver', 'local'),
+                    "mountpoint": vol.attrs.get('Mountpoint', ''),
+                    "created": vol.attrs.get('CreatedAt', '')[:19] if vol.attrs.get('CreatedAt') else ''
+                })
+        else:
+            ssh = await DockerService.get_ssh_client(host)
+            try:
+                command = 'docker volume ls --format "{{.Name}}|{{.Driver}}|{{.Mountpoint}}"'
+                stdin, stdout, stderr = await loop.run_in_executor(None, ssh.exec_command, command)
+                output = await loop.run_in_executor(None, stdout.read)
+                
+                for line in output.decode().strip().split('\n'):
+                    if '|' in line:
+                        parts = line.split('|')
+                        if len(parts) >= 3:
+                            volumes.append({
+                                "name": parts[0],
+                                "driver": parts[1],
+                                "mountpoint": parts[2],
+                                "created": ""
+                            })
+            finally:
+                ssh.close()
+        
+        return volumes
+    
+    @staticmethod
+    async def prune_volumes(host: DockerHost, loop: asyncio.AbstractEventLoop) -> tuple:
+        """Remove unused volumes. Returns (deleted_names, space_reclaimed_bytes)"""
+        deleted = []
+        space = 0
+        
+        if host.type == 'local':
+            client = DockerService.get_local_client()
+            result = await loop.run_in_executor(None, client.volumes.prune)
+            deleted = result.get('VolumesDeleted', []) or []
+            space = result.get('SpaceReclaimed', 0)
+        else:
+            ssh = await DockerService.get_ssh_client(host)
+            try:
+                command = 'docker volume prune -f'
+                stdin, stdout, stderr = await loop.run_in_executor(None, ssh.exec_command, command)
+                output = await loop.run_in_executor(None, stdout.read)
+                # Parse output
+                for line in output.decode().split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith('Deleted') and not line.startswith('Total'):
+                        deleted.append(line)
+            finally:
+                ssh.close()
+        
+        return deleted, space

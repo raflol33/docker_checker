@@ -56,10 +56,35 @@
         {% endif %}
     </td>
 
+    <!-- Resources -->
+    <td class="px-4 py-3 resources-cell" data-container-id="{{ c.id }}">
+        {% if 'running' in c.state|lower %}
+        <div class="space-y-1 min-w-[120px]">
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] text-gray-500 w-8">CPU</span>
+                <div class="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="cpu-bar h-full bg-cyan-500 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+                <span class="cpu-text text-[10px] text-cyan-400 w-8 text-right">--%</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] text-gray-500 w-8">RAM</span>
+                <div class="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="mem-bar h-full bg-purple-500 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+                <span class="mem-text text-[10px] text-purple-400 w-8 text-right">--%</span>
+            </div>
+        </div>
+        {% else %}
+        <span class="text-gray-600 text-xs">—</span>
+        {% endif %}
+    </td>
+
     <!-- Host -->
     <td class="px-4 py-3">
         <span class="px-2 py-0.5 bg-gray-700 text-blue-300 rounded text-xs font-mono">{{ c.host }}</span>
     </td>
+
 
     <!-- Actions -->
     <td class="px-4 py-3">
@@ -83,7 +108,17 @@
                 📜
             </button>
 
+            <button hx-get="/metrics/{{c.host}}/{{c.id}}" hx-target="#metrics-modal-content"
+                onclick="document.getElementById('metrics-modal').showModal()"
+                class="text-purple-400 hover:text-purple-300 transition p-1 hover:bg-gray-700 rounded" title="Графики">
+                📊
+            </button>
+
             {% if 'running' in c.state|lower %}
+            <button onclick="openTerminal('{{c.host}}', '{{c.id}}', '{{c.name}}')"
+                class="text-cyan-400 hover:text-cyan-300 transition p-1 hover:bg-gray-700 rounded" title="Terminal">
+                🖥️
+            </button>
             <button hx-post="/containers/{{c.host}}/{{c.id}}/stop" hx-swap="none"
                 class="text-red-500 hover:text-red-400 transition p-1 hover:bg-gray-700 rounded" title="Остановить">
                 ⛔
@@ -95,6 +130,7 @@
             </button>
             {% endif %}
 
+
             <button hx-post="/containers/{{c.host}}/{{c.id}}/restart" hx-swap="none"
                 class="text-yellow-500 hover:text-yellow-400 transition p-1 hover:bg-gray-700 rounded"
                 title="Перезапустить">
@@ -105,7 +141,8 @@
 </tr>
 {% else %}
 <tr>
-    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+    <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+
         <div class="flex flex-col items-center gap-2">
             <span class="text-3xl">📭</span>
             <span>Контейнеры не найдены</span>
